@@ -1,220 +1,146 @@
 {% load static captcha_tags %}
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="yandex-verification" content="2481be1b37f5b18c" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ page_title|default:site_settings.hero_title|default:"Производитель сыров и молочной продукции в Омске" }} — {{ brand_short_name|default:"Сибсыр" }}{% endblock %}</title>
-
-    <!-- Meta tags & SEO -->
-    <meta
-      name="description"
-      content="{% block meta_description %}{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}{% endblock %}"
-    />
-    <meta name="keywords" content="{% block meta_keywords %}{{ page_keywords|default:site_settings.seo_default_keywords|default:'Сибсыр, сыр омск, купить сыр оптом, производитель сыра, сулугуни, адыгейский' }}{% block title %}0" />
     
+    <!-- Meta tags & SEO -->
+    <meta name="description" content="{% block meta_description %}{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}{{ page_keywords|default:site_settings.seo_default_keywords|default:'Сибсыр, сыр омск, купить сыр оптом, производитель сыра, сулугуни, адыгейский' }}{% endblock %}">
 
     <!-- Canonical URL -->
-    <link rel="canonical" href="{% block title %}1{% block title %}2{% block title %}3" />
+    <link rel="canonical" href="{% block canonical_url %}{{ canonical_url }}{% endblock %}">
 
     <!-- Robots directive -->
     {% if site_settings and not site_settings.is_indexing_enabled %}
-      <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="robots" content="noindex, nofollow, noarchive">
     {% else %}
-      <meta
-        name="robots"
-        content="{% block title %}6index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1{% block title %}7"
-      />
+    <meta name="robots" content="{% block meta_robots %}index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1{% endblock %}">
     {% endif %}
 
     <!-- Search Engine Verifications (Yandex & Google) -->
     {% if site_settings.yandex_verification_code %}
-      <meta name="yandex-verification" content="{{ page_title|default:site_settings.hero_title|default:"Производитель сыров и молочной продукции в Омске" }}0" />
+    <meta name="yandex-verification" content="{{ site_settings.yandex_verification_code }}">
     {% endif %}
     {% if site_settings.google_verification_code %}
-      <meta name="google-site-verification" content="{{ page_title|default:site_settings.hero_title|default:"Производитель сыров и молочной продукции в Омске" }}3" />
+    <meta name="google-site-verification" content="{{ site_settings.google_verification_code }}">
     {% endif %}
 
     <!-- OpenGraph & Twitter Cards -->
     {% block meta_og %}
-      <meta property="og:site_name" content="{{ page_title|default:site_settings.hero_title|default:"Производитель сыров и молочной продукции в Омске" }}6" />
-      <meta property="og:locale" content="ru_RU" />
-      <meta property="og:type" content="{{ page_title|default:site_settings.hero_title|default:"Производитель сыров и молочной продукции в Омске" }}7website{{ page_title|default:site_settings.hero_title|default:"Производитель сыров и молочной продукции в Омске" }}8" />
-      <meta
-        property="og:title"
-        content="{{ page_title|default:site_settings.hero_title|default:"Производитель сыров и молочной продукции в Омске" }}9{{ brand_short_name|default:"Сибсыр" }}0{{ brand_short_name|default:"Сибсыр" }}1"
-      />
-      <meta
-        property="og:description"
-        content="{{ brand_short_name|default:"Сибсыр" }}2{{ brand_short_name|default:"Сибсыр" }}3{{ brand_short_name|default:"Сибсыр" }}4"
-      />
-      <meta
-        property="og:url"
-        content="{{ brand_short_name|default:"Сибсыр" }}5{{ brand_short_name|default:"Сибсыр" }}6{{ brand_short_name|default:"Сибсыр" }}7"
-      />
-      <meta
-        property="og:image"
-        content="{{ brand_short_name|default:"Сибсыр" }}8{{ brand_short_name|default:"Сибсыр" }}9{% endblock %}0"
-      />
-
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta
-        name="twitter:title"
-        content="{% endblock %}1{% endblock %}2{% endblock %}3"
-      />
-      <meta
-        name="twitter:description"
-        content="{% endblock %}4{% endblock %}5{% endblock %}6"
-      />
-      <meta
-        name="twitter:image"
-        content="{% endblock %}7{% endblock %}8{% endblock %}9"
-      />
+    <meta property="og:site_name" content="{{ brand_name|default:'ТМ «Сибсыр»' }}">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}{{ page_title|default:brand_name }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ page_description|default:site_settings.seo_default_description }}{% endblock %}">
+    <meta property="og:url" content="{% block og_url %}{{ canonical_url }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ site_og_image_url }}{% endblock %}">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ page_title|default:brand_name }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ page_description|default:site_settings.seo_default_description }}{% endblock %}">
+    <meta name="twitter:image" content="{% block twitter_image %}{{ site_og_image_url }}{% endblock %}">
     {% endblock %}
 
-    {% block extra_meta %}
-    {% endblock %}
+    {% block extra_meta %}{% endblock %}
 
     <!-- Schema.org Microdata: LocalBusiness / Organization -->
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "LocalBusiness",
-        "name": "{% block meta_description %}3",
-        "legalName": "{% block meta_description %}4",
-        "url": "{% block meta_description %}5",
-        "logo": "{% block meta_description %}6{% block meta_description %}7{% block meta_description %}8{% block meta_description %}9{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}0{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}1{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}2",
-        "image": "{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}3",
-        "telephone": "{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}4",
-        "email": "{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}5",
-        "priceRange": "₽₽",
-        "address": {
-          "@type": "PostalAddress",
-          "streetAddress": "{{ page_description|default:site_settings.seo_default_description|default:'Производитель сыров, сливочного масла, кисломолочной и молочной продукции Сибсыр в Омске. Оптовые и розничные поставки по всей России.' }}6",
-          "addressLocality": "Омск",
-          "addressRegion": "Омская область",
-          "addressCountry": "RU"
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "{{ brand_name|default:'ТМ «Сибсыр»' }}",
+      "legalName": "{{ site_settings.inn_kpp|default:'ИП Нахшкарян А.Л.' }}",
+      "url": "{{ site_base_url }}",
+      "logo": "{% if site_settings.logo %}{{ site_base_url }}{{ site_settings.logo.url }}{% else %}{{ site_base_url }}{% static 'images/favicon.svg' %}{% endif %}",
+      "image": "{{ site_og_image_url }}",
+      "telephone": "{{ site_settings.phone|default:'8 (3812) 43-35-36' }}",
+      "email": "{{ site_settings.email|default:'sibs@list.ru' }}",
+      "priceRange": "₽₽",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "{{ site_settings.address|default:'г. Омск, ул. Зеленая, 16' }}",
+        "addressLocality": "Омск",
+        "addressRegion": "Омская область",
+        "addressCountry": "RU"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 54.9893,
+        "longitude": 73.3682
+      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          "opens": "08:00",
+          "closes": "17:00"
         },
-        "geo": {
-          "@type": "GeoCoordinates",
-          "latitude": 54.9893,
-          "longitude": 73.3682
-        },
-        "openingHoursSpecification": [
-          {
-            "@type": "OpeningHoursSpecification",
-            "dayOfWeek": [
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday"
-            ],
-            "opens": "08:00",
-            "closes": "17:00"
-          },
-          {
-            "@type": "OpeningHoursSpecification",
-            "dayOfWeek": "Saturday",
-            "opens": "08:00",
-            "closes": "14:00"
-          }
-        ]
-      }
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": "Saturday",
+          "opens": "08:00",
+          "closes": "14:00"
+        }
+      ]
+    }
     </script>
 
-    {% block schema_extra %}
-    {% endblock %}
+    {% block schema_extra %}{% endblock %}
 
     <!-- Yandex.Metrika Counter -->
     {% if site_settings.yandex_metrika_id %}
-      <script type="text/javascript">
-        (function (m, e, t, r, i, k, a) {
-          m[i] =
-            m[i] ||
-            function () {
-              (m[i].a = m[i].a || []).push(arguments);
-            };
-          m[i].l = 1 * new Date();
-          for (var j = 0; j < document.scripts.length; j++) {
-            if (document.scripts[j].src === r) {
-              return;
-            }
-          }
-          ((k = e.createElement(t)),
-            (a = e.getElementsByTagName(t)[0]),
-            (k.async = 1),
-            (k.src = r),
-            a.parentNode.insertBefore(k, a));
-        })(
-          window,
-          document,
-          "script",
-          "https://mc.yandex.ru/metrika/tag.js",
-          "ym",
-        );
+    <script type="text/javascript" >
+       (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+       m[i].l=1*new Date();
+       for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+       k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+       (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
 
-        ym({% endblock %}0, "init", {
-          clickmap: true,
-          trackLinks: true,
-          accurateTrackBounce: true,
-          webvisor: true,
-        });
-      </script>
-      <noscript>
-        <div>
-          <img
-            src="https://mc.yandex.ru/watch/{% endblock %}1"
-            style="position: absolute; left: -9999px"
-            alt=""
-          />
-        </div>
-      </noscript>
+       ym({{ site_settings.yandex_metrika_id }}, "init", {
+            clickmap:true,
+            trackLinks:true,
+            accurateTrackBounce:true,
+            webvisor:true
+       });
+    </script>
+    <noscript><div><img src="https://mc.yandex.ru/watch/{{ site_settings.yandex_metrika_id }}" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
     {% endif %}
 
     <!-- Custom Head Scripts -->
     {% if site_settings.custom_head_scripts %}
-      {{ site_settings.custom_head_scripts|safe }}
+    {{ site_settings.custom_head_scripts|safe }}
     {% endif %}
 
     <!-- Favicon -->
     {% if site_settings.favicon %}
-      <link rel="icon" href="{% endblock %}7" />
+    <link rel="icon" href="{{ site_settings.favicon.url }}">
     {% else %}
-      <link rel="icon" type="image/svg+xml" href="{% endblock %}9" />
-      <link rel="alternate icon" href="{% block meta_keywords %}0" />
+    <link rel="icon" type="image/svg+xml" href="{% static 'images/favicon.svg' %}">
+    <link rel="alternate icon" href="{% static 'images/favicon.ico' %}">
     {% endif %}
 
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-      crossorigin="anonymous"
-    />
-
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    
     <!-- Bootstrap Icons -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="{% block meta_keywords %}2?v=3.1" />
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3.1">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
 
-    {% block extra_css %}
-    {% endblock %}
-  </head>
-  <body>
+
     <!-- 1. ВЕРХНЯЯ ИНФОРМАЦИОННАЯ СТРОКА (TOPBAR) -->
     {% include 'includes/topbar.html' %}
 
@@ -226,8 +152,7 @@
 
     <!-- 4. ОСНОВНОЙ КОНТЕНТ СТРАНИЦЫ -->
     <main>
-      {% block content %}
-      {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
     <!-- 5. ПЛАВАЮЩАЯ КНОПКА КОРЗИНЫ (ДЛЯ ДЕСКТОПА) -->
@@ -247,11 +172,10 @@
 
     <!-- 10. БАЗОВЫЕ СКРИПТЫ И JS-ЛОГИКА -->
     {% include 'includes/scripts.html' %}
-    {% block extra_scripts %}
-    {% endblock %}
+    {% block extra_scripts %}{% endblock %}
 
     {% if site_settings.custom_body_scripts %}
-      {{ site_settings.custom_body_scripts|safe }}
+    {{ site_settings.custom_body_scripts|safe }}
     {% endif %}
-  </body>
+</body>
 </html>
