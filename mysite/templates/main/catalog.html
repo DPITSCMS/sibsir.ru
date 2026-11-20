@@ -77,6 +77,96 @@
     <!-- 6. ОПТОВЫЙ БАННЕР ДЛЯ B2B КЛИЕНТОВ И HORECA -->
     {% include "main/catalog/b2b_callout.html" %}
 
+    <!-- 6.1. СТАТЬИ И НОВОСТИ КАТЕГОРИИ (ЕСЛИ ПРИВЯЗАНЫ) -->
+    {% if current_category and category_articles or current_category and category_news %}
+    <div class="card border rounded-4 shadow-sm bg-white p-4 p-md-5 mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill px-3 py-1 mb-2">
+                    <i class="bi bi-journal-text text-warning me-1"></i>База знаний о разделе
+                </span>
+                <h3 class="fw-bold text-dark mb-0 fs-4">Материалы и новости: {{ current_category.name }}</h3>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'main:articles' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                    Все статьи <i class="bi bi-arrow-right"></i>
+                </a>
+                <a href="{% url 'news:news_list' %}" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3">
+                    Все новости <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            {% for art in category_articles %}
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border rounded-4 overflow-hidden shadow-sm bg-light hover-lift">
+                    <div style="height: 140px; overflow: hidden; background: #e2e8f0;">
+                        <a href="{{ art.get_absolute_url }}">
+                            <img src="{{ art.image_url }}" alt="{{ art.title }}" class="w-100 h-100" style="object-fit: cover;">
+                        </a>
+                    </div>
+                    <div class="p-3 d-flex flex-column justify-content-between flex-grow-1">
+                        <div>
+                            <span class="badge bg-primary text-white rounded-pill mb-2" style="font-size: 0.68rem;">Статья</span>
+                            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem; line-height: 1.3;">
+                                <a href="{{ art.get_absolute_url }}" class="text-dark text-decoration-none">
+                                    {{ art.title }}
+                                </a>
+                            </h6>
+                            {% if art.snippet %}
+                            <p class="text-muted small mb-0" style="font-size: 0.78rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                {{ art.snippet }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="pt-2 mt-2 border-top text-end">
+                            <a href="{{ art.get_absolute_url }}" class="small fw-semibold text-warning text-decoration-none">
+                                Читать →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% for n in category_news %}
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 border rounded-4 overflow-hidden shadow-sm bg-light hover-lift">
+                    <div style="height: 140px; overflow: hidden; background: #e2e8f0;">
+                        <a href="{{ n.get_absolute_url }}">
+                            <img src="{{ n.image_url }}" alt="{{ n.title }}" class="w-100 h-100" style="object-fit: cover;">
+                        </a>
+                    </div>
+                    <div class="p-3 d-flex flex-column justify-content-between flex-grow-1">
+                        <div>
+                            <span class="badge bg-{{ n.badge_color }} text-white rounded-pill mb-2" style="font-size: 0.68rem;">
+                                {{ n.get_news_type_display }}
+                            </span>
+                            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem; line-height: 1.3;">
+                                <a href="{{ n.get_absolute_url }}" class="text-dark text-decoration-none">
+                                    {{ n.title }}
+                                </a>
+                            </h6>
+                            {% if n.snippet %}
+                            <p class="text-muted small mb-0" style="font-size: 0.78rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                {{ n.snippet }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="pt-2 mt-2 border-top text-end">
+                            <a href="{{ n.get_absolute_url }}" class="small fw-semibold text-secondary text-decoration-none">
+                                Подробнее →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 7. SEO-ОПИСАНИЕ КАТЕГОРИИ ДЛЯ ПОИСКОВЫХ СИСТЕМ -->
     {% include "main/catalog/seo_text.html" %}
 

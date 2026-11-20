@@ -18,6 +18,7 @@ class NewsAdmin(admin.ModelAdmin):
         "image_thumbnail",
         "title",
         "news_type_badge",
+        "related_items_badge",
         "is_auto_generated_badge",
         "views_count",
         "is_published",
@@ -29,15 +30,21 @@ class NewsAdmin(admin.ModelAdmin):
         "is_published",
         "news_type",
         "is_auto_generated",
+        "related_categories",
         ("published_at", admin.DateFieldListFilter),
     )
     search_fields = ("title", "snippet", "content", "slug", "source_model")
     prepopulated_fields = {"slug": ("title",)}
     readonly_fields = ("created_at", "updated_at", "is_auto_generated", "source_model", "source_action")
+    filter_horizontal = ("related_products", "related_categories")
 
     fieldsets = (
         ("Основная информация", {
             "fields": ("title", "slug", "news_type", "image", "snippet", "content")
+        }),
+        ("Прикрепление к каталогу (Товары и Категории)", {
+            "fields": ("related_products", "related_categories"),
+            "description": "Прикрепите новость к конкретным товарам или категориям каталога. Новость появится на страницах этих товаров и категорий, а сами товары будут показаны в новости."
         }),
         ("Дата публикации и параметры отображения", {
             "fields": (
@@ -97,6 +104,19 @@ class NewsAdmin(admin.ModelAdmin):
             color,
             label
         )
+
+    @admin.display(description="Связи с каталогом")
+    def related_items_badge(self, obj):
+        p_cnt = obj.related_products.count()
+        c_cnt = obj.related_categories.count()
+        parts = []
+        if p_cnt:
+            parts.append(f'<span style="background: #e0f2fe; color: #0369a1; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{p_cnt} тов.</span>')
+        if c_cnt:
+            parts.append(f'<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{c_cnt} кат.</span>')
+        if parts:
+            return format_html(" ".join(parts))
+        return "—"
 
     @admin.display(description="Источник")
     def is_auto_generated_badge(self, obj):

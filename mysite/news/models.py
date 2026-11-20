@@ -87,6 +87,22 @@ class News(models.Model):
     source_action = models.CharField(max_length=60, blank=True, verbose_name="Действие-источник")
     related_url = models.CharField(max_length=255, blank=True, verbose_name="Ссылка на связанный объект/раздел")
 
+    # Связи с каталогом (товары и категории)
+    related_products = models.ManyToManyField(
+        "shop.Product",
+        blank=True,
+        related_name="news",
+        verbose_name="Прикрепленные товары",
+        help_text="Товары каталога, связанные с этой новостью"
+    )
+    related_categories = models.ManyToManyField(
+        "shop.Category",
+        blank=True,
+        related_name="news",
+        verbose_name="Прикрепленные категории",
+        help_text="Категории каталога, связанные с этой новостью"
+    )
+
     # SEO поля
     meta_title = models.CharField(max_length=255, blank=True, verbose_name="SEO Заголовок (Title)")
     meta_description = models.TextField(blank=True, verbose_name="SEO Описание (Description)")

@@ -168,6 +168,12 @@ def catalog_view(request):
     start_product_idx = (current_page - 1) * page_size + 1 if total_products_count > 0 else 0
     end_product_idx = min(current_page * page_size, total_products_count)
 
+    category_articles = []
+    category_news = []
+    if current_category:
+        category_articles = list(current_category.get_related_articles()[:6])
+        category_news = list(current_category.get_related_news()[:6])
+
     context = {
         "page_title": page_title,
         "page_description": page_description,
@@ -190,6 +196,8 @@ def catalog_view(request):
         "page_range": list(range(1, total_pages + 1)),
         "start_product_idx": start_product_idx,
         "end_product_idx": end_product_idx,
+        "category_articles": category_articles,
+        "category_news": category_news,
     }
     return render(request, "main/catalog.html", context)
 
@@ -302,6 +310,9 @@ def product_detail_view(request, slug):
     share_title = f"{product.title} — ТМ «Сибсыр»"
     share_text = f"Натуральный продукт: {product.title}. Цена: {product.effective_price_display}. Доставка из Омска."
 
+    attached_articles = list(product.get_related_articles())
+    attached_news = list(product.get_related_news())
+
     context = {
         "page_title": product.get_meta_title(),
         "page_description": product.get_meta_description(),
@@ -323,6 +334,8 @@ def product_detail_view(request, slug):
         "full_url": full_url,
         "share_title": share_title,
         "share_text": share_text,
+        "attached_articles": attached_articles,
+        "attached_news": attached_news,
     }
     return render(request, "main/product_detail.html", context)
 
@@ -381,6 +394,8 @@ def article_detail_view(request, slug):
     read_time = max(1, round(len(words) / 100))
 
     canonical_url = request.build_absolute_uri(article.get_absolute_url())
+    attached_products = list(article.related_products.filter(is_active=True).select_related("category"))
+    attached_categories = list(article.related_categories.filter(is_active=True))
 
     context = {
         "page_title": article.get_meta_title(),
@@ -392,6 +407,8 @@ def article_detail_view(request, slug):
         "brand_short_name": settings.brand_short_name,
         "article": article,
         "related_articles": related_articles,
+        "attached_products": attached_products,
+        "attached_categories": attached_categories,
         "read_time": read_time,
     }
     return render(request, "main/article_detail.html", context)

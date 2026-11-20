@@ -7,17 +7,22 @@ from .models import Article
 @admin.register(Article)
 class ArticleAdmin(RichTextAdminMixin, admin.ModelAdmin):
     rich_text_fields = ("content",)
-    list_display = ("order", "image_thumbnail", "title", "date_str", "views_count", "is_published", "created_at")
+    list_display = ("order", "image_thumbnail", "title", "date_str", "related_products_count", "related_categories_count", "views_count", "is_published", "created_at")
     list_display_links = ("title",)
     list_editable = ("order", "is_published", "views_count")
-    list_filter = ("is_published", "created_at")
+    list_filter = ("is_published", "created_at", "related_categories")
     search_fields = ("title", "snippet", "content")
     prepopulated_fields = {"slug": ("title",)}
     readonly_fields = ("created_at",)
+    filter_horizontal = ("related_products", "related_categories")
 
     fieldsets = (
         ("Статья", {
             "fields": ("title", "slug", "date_str", "snippet", "content")
+        }),
+        ("Прикрепление к каталогу (Товары и Категории)", {
+            "fields": ("related_products", "related_categories"),
+            "description": "Прикрепите статью к конкретным товарам или целым категориям каталога. Статья будет отображаться на страницах выбранных товаров и категорий, а сами товары будут показаны в статье."
         }),
         ("Изображение и параметры", {
             "fields": ("image", "views_count", "order", "is_published", "created_at")
@@ -58,3 +63,17 @@ class ArticleAdmin(RichTextAdminMixin, admin.ModelAdmin):
             )
         return "-"
     image_thumbnail.short_description = "Превью"
+
+    @admin.display(description="Товары")
+    def related_products_count(self, obj):
+        cnt = obj.related_products.count()
+        if cnt:
+            return format_html('<span style="background: #e0f2fe; color: #0369a1; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 11px;">{} тов.</span>', cnt)
+        return "—"
+
+    @admin.display(description="Категории")
+    def related_categories_count(self, obj):
+        cnt = obj.related_categories.count()
+        if cnt:
+            return format_html('<span style="background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 4px; font-weight: 600; font-size: 11px;">{} кат.</span>', cnt)
+        return "—"

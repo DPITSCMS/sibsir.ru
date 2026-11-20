@@ -15,6 +15,22 @@ class Article(models.Model):
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок сортировки")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
 
+    # Связи с каталогом (товары и категории)
+    related_products = models.ManyToManyField(
+        "shop.Product",
+        blank=True,
+        related_name="articles",
+        verbose_name="Прикрепленные товары",
+        help_text="Товары каталога, связанные с этой статьей"
+    )
+    related_categories = models.ManyToManyField(
+        "shop.Category",
+        blank=True,
+        related_name="articles",
+        verbose_name="Прикрепленные категории",
+        help_text="Категории каталога, связанные с этой статьей"
+    )
+
     # SEO поля
     meta_title = models.CharField(
         max_length=255, 

@@ -115,6 +115,25 @@
                                 <small class="text-muted">Ссылка на товар, акцию или раздел (необязательно)</small>
                             </div>
 
+                            <!-- Прикрепление к товарам и категориям -->
+                            <div class="col-md-6">
+                                <label for="id_related_products" class="form-label fw-bold text-dark d-flex align-items-center justify-content-between">
+                                    <span><i class="bi bi-box-seam text-warning me-1"></i>Прикрепить к товарам</span>
+                                    <span class="badge bg-light text-muted border">Выбор нескольких</span>
+                                </label>
+                                {{ form.related_products }}
+                                <small class="text-muted">Зажмите Ctrl (Cmd), чтобы выбрать несколько товаров</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="id_related_categories" class="form-label fw-bold text-dark d-flex align-items-center justify-content-between">
+                                    <span><i class="bi bi-grid text-info me-1"></i>Прикрепить к категориям</span>
+                                    <span class="badge bg-light text-muted border">Выбор нескольких</span>
+                                </label>
+                                {{ form.related_categories }}
+                                <small class="text-muted">Зажмите Ctrl (Cmd), чтобы выбрать несколько категорий</small>
+                            </div>
+
                             <div class="col-12">
                                 <label for="id_image" class="form-label fw-bold text-dark">Изображение / Баннер новости</label>
                                 {{ form.image }}

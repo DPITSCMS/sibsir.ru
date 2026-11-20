@@ -4,12 +4,31 @@ from django.utils.safestring import mark_safe
 from django.urls import reverse
 from main.admin_mixins import RichTextAdminMixin, DragDropReorderMixin
 from .models import Category, Product, Promotion, PromoCode, Order, OrderItem, Review
+from news.models import News
+from articles.models import Article
+
+
+class NewsCategoryInline(admin.TabularInline):
+    model = News.related_categories.through
+    extra = 0
+    verbose_name = "Прикрепленная новость"
+    verbose_name_plural = "Прикрепленные новости"
+    autocomplete_fields = ("news",)
+
+
+class ArticleCategoryInline(admin.TabularInline):
+    model = Article.related_categories.through
+    extra = 0
+    verbose_name = "Прикрепленная статья"
+    verbose_name_plural = "Прикрепленные статьи"
+    autocomplete_fields = ("article",)
 
 
 @admin.register(Category)
 class CategoryAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
     rich_text_fields = ("description", "seo_text")
-    list_display = ("order", "image_preview", "icon_badge", "name", "slug", "products_count", "promotions_info", "is_active")
+    inlines = [ArticleCategoryInline, NewsCategoryInline]
+    list_display = ("order", "image_preview", "icon_badge", "name", "slug", "products_count", "attached_materials_info", "promotions_info", "is_active")
     list_display_links = ("name",)
     list_editable = ("order", "is_active")
     prepopulated_fields = {"slug": ("name",)}
@@ -60,6 +79,19 @@ class CategoryAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
     def products_count(self, obj):
         return obj.products.count()
     products_count.short_description = "Товаров"
+
+    def attached_materials_info(self, obj):
+        a_cnt = obj.articles.count()
+        n_cnt = obj.news.count()
+        parts = []
+        if a_cnt:
+            parts.append(f'<span style="background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{a_cnt} ст.</span>')
+        if n_cnt:
+            parts.append(f'<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{n_cnt} нов.</span>')
+        if parts:
+            return format_html(" ".join(parts))
+        return mark_safe('<span style="color: #94a3b8; font-size: 11px;">—</span>')
+    attached_materials_info.short_description = "Статьи / Новости"
 
     def promotions_info(self, obj):
         promo = obj.get_active_promotion()
@@ -227,11 +259,27 @@ class ReviewInline(admin.TabularInline):
     show_change_link = True
 
 
+class ArticleProductInline(admin.TabularInline):
+    model = Article.related_products.through
+    extra = 0
+    verbose_name = "Прикрепленная статья"
+    verbose_name_plural = "Прикрепленные статьи"
+    autocomplete_fields = ("article",)
+
+
+class NewsProductInline(admin.TabularInline):
+    model = News.related_products.through
+    extra = 0
+    verbose_name = "Прикрепленная новость"
+    verbose_name_plural = "Прикрепленные новости"
+    autocomplete_fields = ("news",)
+
+
 @admin.register(Product)
 class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
     rich_text_fields = ("description", "full_description", "composition", "cooking_tips")
     list_per_page = 10
-    inlines = [ReviewInline]
+    inlines = [ReviewInline, ArticleProductInline, NewsProductInline]
     list_display = (
         "order",
         "image_preview",
@@ -243,6 +291,7 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
         "wholesale_price_numeric",
         "wholesale_min_qty",
         "discount_info",
+        "attached_materials_info",
         "fat_content",
         "unit_weight",
         "badge_tag",
@@ -365,6 +414,19 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
             )
         return mark_safe('<span style="color: #94a3b8; font-size: 11px;">Без скидки</span>')
     discount_info.short_description = "Акция / Скидка"
+
+    def attached_materials_info(self, obj):
+        a_cnt = obj.articles.count()
+        n_cnt = obj.news.count()
+        parts = []
+        if a_cnt:
+            parts.append(f'<span style="background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{a_cnt} ст.</span>')
+        if n_cnt:
+            parts.append(f'<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{n_cnt} нов.</span>')
+        if parts:
+            return format_html(" ".join(parts))
+        return mark_safe('<span style="color: #94a3b8; font-size: 11px;">—</span>')
+    attached_materials_info.short_description = "Материалы"
 
     def badge_tag(self, obj):
         if not obj.badge:

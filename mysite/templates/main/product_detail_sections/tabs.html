@@ -27,6 +27,13 @@
                     <i class="bi bi-chat-square-quote me-2"></i>Отзывы (<span id="detailReviewsTabCount">{{ total_reviews_display|default:product.reviews_count|default:"14" }}</span>)
                 </button>
             </li>
+            {% if attached_articles or attached_news %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="nav-materials-tab" data-bs-toggle="tab" data-bs-target="#tab-materials" type="button" role="tab" aria-controls="tab-materials" aria-selected="false">
+                    <i class="bi bi-journal-text me-2"></i>Статьи и новости ({{ attached_articles|length|add:attached_news|length }})
+                </button>
+            </li>
+            {% endif %}
         </ul>
 
         <div class="tab-content" id="productTabsContent">
@@ -390,6 +397,106 @@
                 {% endif %}
             </div>
 
+            <!-- TAB 6: ATTACHED ARTICLES & NEWS -->
+            {% if attached_articles or attached_news %}
+            <div class="tab-pane fade" id="tab-materials" role="tabpanel" aria-labelledby="nav-materials-tab">
+                <div class="mb-4">
+                    <h4 class="fw-bold text-dark mb-1">Полезные материалы и новости о продукте</h4>
+                    <p class="text-muted small">Экспертные статьи сыроделов, гастрономические советы, рецепты и события производства «Сибсыр»</p>
+                </div>
+
+                {% if attached_articles %}
+                <div class="mb-4">
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-journal-richtext text-warning"></i>
+                        <span>Статьи и рецепты ({{ attached_articles|length }})</span>
+                    </h5>
+                    <div class="row g-3">
+                        {% for art in attached_articles %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 border rounded-4 overflow-hidden shadow-sm bg-white hover-lift">
+                                <div style="height: 160px; overflow: hidden; background: #f1f5f9;">
+                                    <a href="{{ art.get_absolute_url }}">
+                                        <img src="{{ art.image_url }}" alt="{{ art.title }}" class="w-100 h-100" style="object-fit: cover;">
+                                    </a>
+                                </div>
+                                <div class="p-3 d-flex flex-column justify-content-between flex-grow-1">
+                                    <div>
+                                        <div class="text-muted small mb-1" style="font-size: 0.75rem;">
+                                            <i class="bi bi-calendar3 me-1 text-warning"></i>{{ art.date_str }}
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-2" style="font-size: 0.95rem; line-height: 1.35;">
+                                            <a href="{{ art.get_absolute_url }}" class="text-dark text-decoration-none">
+                                                {{ art.title }}
+                                            </a>
+                                        </h6>
+                                        {% if art.snippet %}
+                                        <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                            {{ art.snippet }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="pt-3 mt-2 border-top">
+                                        <a href="{{ art.get_absolute_url }}" class="btn btn-sm btn-outline-warning text-dark rounded-pill w-100 fw-semibold">
+                                            Читать статью →
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if attached_news %}
+                <div>
+                    <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-newspaper text-info"></i>
+                        <span>Новости и события ({{ attached_news|length }})</span>
+                    </h5>
+                    <div class="row g-3">
+                        {% for n in attached_news %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="card h-100 border rounded-4 overflow-hidden shadow-sm bg-white hover-lift">
+                                <div style="height: 160px; overflow: hidden; background: #f1f5f9;">
+                                    <a href="{{ n.get_absolute_url }}">
+                                        <img src="{{ n.image_url }}" alt="{{ n.title }}" class="w-100 h-100" style="object-fit: cover;">
+                                    </a>
+                                </div>
+                                <div class="p-3 d-flex flex-column justify-content-between flex-grow-1">
+                                    <div>
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="badge bg-{{ n.badge_color }} rounded-pill text-white" style="font-size: 0.7rem;">
+                                                {{ n.get_news_type_display }}
+                                            </span>
+                                            <span class="text-muted small" style="font-size: 0.72rem;">{{ n.formatted_date }}</span>
+                                        </div>
+                                        <h6 class="fw-bold text-dark mb-2" style="font-size: 0.95rem; line-height: 1.35;">
+                                            <a href="{{ n.get_absolute_url }}" class="text-dark text-decoration-none">
+                                                {{ n.title }}
+                                            </a>
+                                        </h6>
+                                        {% if n.snippet %}
+                                        <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                            {{ n.snippet }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="pt-3 mt-2 border-top">
+                                        <a href="{{ n.get_absolute_url }}" class="btn btn-sm btn-outline-secondary rounded-pill w-100 fw-semibold">
+                                            Подробнее →
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 

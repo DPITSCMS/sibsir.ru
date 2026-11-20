@@ -29,6 +29,8 @@ class NewsForm(forms.ModelForm):
             "slug",
             "news_type",
             "published_at",
+            "related_products",
+            "related_categories",
             "image",
             "snippet",
             "content",
@@ -49,6 +51,16 @@ class NewsForm(forms.ModelForm):
             }),
             "news_type": forms.Select(attrs={
                 "class": "form-select"
+            }),
+            "related_products": forms.SelectMultiple(attrs={
+                "class": "form-select",
+                "size": 6,
+                "title": "Удерживайте Ctrl (Cmd на Mac) для выбора нескольких товаров"
+            }),
+            "related_categories": forms.SelectMultiple(attrs={
+                "class": "form-select",
+                "size": 4,
+                "title": "Удерживайте Ctrl (Cmd на Mac) для выбора нескольких категорий"
             }),
             "published_at": ModernDateTimePickerWidget(attrs={
                 "class": "form-control form-control-lg"
@@ -82,3 +94,7 @@ class NewsForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["slug"].required = False
         self.fields["snippet"].required = False
+        if "related_products" in self.fields:
+            self.fields["related_products"].required = False
+        if "related_categories" in self.fields:
+            self.fields["related_categories"].required = False

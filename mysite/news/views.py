@@ -188,6 +188,8 @@ def news_detail_view(request, slug):
     )
 
     canonical_url = request.build_absolute_uri(news.get_absolute_url())
+    attached_products = list(news.related_products.filter(is_active=True).select_related("category"))
+    attached_categories = list(news.related_categories.filter(is_active=True))
 
     context = {
         "page_title": news.meta_title or f"{news.title} — Новости сыроварни «Сибсыр»",
@@ -199,6 +201,8 @@ def news_detail_view(request, slug):
         "brand_short_name": settings.brand_short_name,
         "news": news,
         "related_news": related_news,
+        "attached_products": attached_products,
+        "attached_categories": attached_categories,
     }
     return render(request, "news/news_detail.html", context)
 

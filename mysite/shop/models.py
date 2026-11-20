@@ -128,6 +128,20 @@ class Category(models.Model):
     def has_discount(self):
         return self.get_active_promotion() is not None
 
+    def get_related_articles(self):
+        """Возвращает опубликованные статьи, прикрепленные к категории или ее товарам."""
+        from articles.models import Article
+        return Article.objects.filter(is_published=True).filter(
+            models.Q(related_categories=self) | models.Q(related_products__category=self)
+        ).distinct().order_by("order", "-id")
+
+    def get_related_news(self):
+        """Возвращает опубликованные новости, прикрепленные к категории или ее товарам."""
+        from news.models import News
+        return News.objects.filter(is_published=True).filter(
+            models.Q(related_categories=self) | models.Q(related_products__category=self)
+        ).distinct().order_by("-published_at", "-id")
+
 
 class Product(models.Model):
     CARD_STYLE_CHOICES = [
@@ -606,6 +620,26 @@ class Product(models.Model):
             self.rating = Decimal(str(round(avg, 1)))
             self.reviews_count = cnt
             self.save(update_fields=["rating", "reviews_count"])
+
+    def get_related_articles(self):
+        """Возвращает опубликованные статьи, прикрепленные к товару или его категории."""
+        from articles.models import Article
+        qs = Article.objects.filter(is_published=True)
+        if self.category_id:
+            qs = qs.filter(models.Q(related_products=self) | models.Q(related_categories=self.category_id)).distinct()
+        else:
+            qs = qs.filter(related_products=self).distinct()
+        return qs.order_by("order", "-id")
+
+    def get_related_news(self):
+        """Возвращает опубликованные новости, прикрепленные к товару или его категории."""
+        from news.models import News
+        qs = News.objects.filter(is_published=True)
+        if self.category_id:
+            qs = qs.filter(models.Q(related_products=self) | models.Q(related_categories=self.category_id)).distinct()
+        else:
+            qs = qs.filter(related_products=self).distinct()
+        return qs.order_by("-published_at", "-id")
 
     def save(self, *args, **kwargs):
         import re

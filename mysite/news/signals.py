@@ -98,6 +98,9 @@ try:
                 if instance.image:
                     news.image = instance.image
                 news.save()
+                news.related_products.add(instance)
+                if instance.category_id:
+                    news.related_categories.add(instance.category_id)
             else:
                 title = f"Обновлен товар: {instance.title}"
                 snippet = f"Обновлена информация и характеристики товара «{instance.title}» в каталоге продукции."
@@ -106,7 +109,7 @@ try:
                     f'<strong><a href="{instance.get_absolute_url()}">{instance.title}</a></strong>. '
                     f"Уточняйте актуальные цены, фасовку и наличие на складе.</p>"
                 )
-                News.objects.create(
+                n = News.objects.create(
                     title=title,
                     snippet=snippet,
                     content=content,
@@ -118,6 +121,9 @@ try:
                     related_url=instance.get_absolute_url(),
                     published_at=timezone.now(),
                 )
+                n.related_products.add(instance)
+                if instance.category_id:
+                    n.related_categories.add(instance.category_id)
 except ImportError:
     pass
 
@@ -156,6 +162,7 @@ try:
                 if instance.image:
                     news.image = instance.image
                 news.save()
+                news.related_categories.add(instance)
             else:
                 title = f"Обновлена категория продукции: {instance.name}"
                 snippet = f"Обновлена информация в разделе «{instance.name}» каталога «Сибсыр»."
@@ -163,7 +170,7 @@ try:
                     f"<p>Обновлены описания и состав категории "
                     f'<strong><a href="{url}">{instance.name}</a></strong>.</p>'
                 )
-                News.objects.create(
+                n = News.objects.create(
                     title=title,
                     snippet=snippet,
                     content=content,
@@ -175,6 +182,7 @@ try:
                     related_url=url,
                     published_at=timezone.now(),
                 )
+                n.related_categories.add(instance)
 except ImportError:
     pass
 
