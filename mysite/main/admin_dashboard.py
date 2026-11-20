@@ -12,9 +12,10 @@ from main.models import (
     SiteSettings, CallbackRequest, ProductionFeature, CompanyTimeline,
     QualityCertificate, DeliveryMethod, PaymentMethod, DeliveryFaq,
     ContactDepartment, FaqCategory, FaqItem, SocialLink, WholesalePriceRequest,
-    FooterStatBanner
+    FooterStatBanner, Page
 )
 from articles.models import Article
+from news.models import News
 
 
 def get_admin_nav_counts():
@@ -23,11 +24,13 @@ def get_admin_nav_counts():
         new_orders = Order.objects.filter(status='new').count()
         pending_callbacks = CallbackRequest.objects.filter(is_processed=False).count()
         pending_wholesale = WholesalePriceRequest.objects.filter(approval_status='pending').count()
-        total_alerts = new_orders + pending_callbacks + pending_wholesale
+        pending_reviews = Review.objects.filter(is_approved=False).count()
+        total_alerts = new_orders + pending_callbacks + pending_wholesale + pending_reviews
         return {
             'new_orders': new_orders,
             'pending_callbacks': pending_callbacks,
             'pending_wholesale': pending_wholesale,
+            'pending_reviews': pending_reviews,
             'total_alerts': total_alerts,
         }
     except Exception:
@@ -35,6 +38,7 @@ def get_admin_nav_counts():
             'new_orders': 0,
             'pending_callbacks': 0,
             'pending_wholesale': 0,
+            'pending_reviews': 0,
             'total_alerts': 0,
         }
 
@@ -42,6 +46,8 @@ def get_admin_nav_counts():
 def get_dashboard_statistics():
     """Собирает полную аналитику и статистические данные для главной страницы админки."""
     now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
     # 1. Заказы и выручка
     orders_qs = Order.objects.all()
@@ -51,6 +57,15 @@ def get_dashboard_statistics():
     paid_revenue = orders_qs.filter(is_paid=True).aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
     pending_revenue = orders_qs.filter(is_paid=False).aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
     
+    # Заказы и выручка за сегодня и за текущий календарный месяц
+    today_orders = orders_qs.filter(created_at__gte=today_start)
+    today_orders_count = today_orders.count()
+    today_revenue = today_orders.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
+
+    month_orders = orders_qs.filter(created_at__gte=month_start)
+    month_orders_count = month_orders.count()
+    month_revenue = month_orders.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
+
     avg_order_value = (total_revenue / total_orders) if total_orders > 0 else Decimal('0.00')
     
     new_orders_count = orders_qs.filter(status='new').count()
@@ -87,7 +102,7 @@ def get_dashboard_statistics():
     total_callbacks = callbacks_qs.count()
     pending_callbacks = callbacks_qs.filter(is_processed=False).count()
     processed_callbacks = callbacks_qs.filter(is_processed=True).count()
-    pending_wholesale_requests = callbacks_qs.filter(request_type='wholesale', approval_status='pending').count()
+    pending_wholesale_requests = WholesalePriceRequest.objects.filter(approval_status='pending').count()
     
     # 4. Отзывы
     reviews_qs = Review.objects.all()
@@ -96,17 +111,28 @@ def get_dashboard_statistics():
     avg_rating = round(avg_rating, 1) if avg_rating else 5.0
     pending_reviews = reviews_qs.filter(is_approved=False).count()
     
-    # 5. Статьи и контент
+    # 5. Статьи, новости и страницы контента
     articles_qs = Article.objects.all()
     total_articles = articles_qs.count()
     published_articles = articles_qs.filter(is_published=True).count()
     total_article_views = articles_qs.aggregate(v=Sum('views_count'))['v'] or 0
+
+    news_qs = News.objects.all()
+    total_news = news_qs.count()
+    published_news = news_qs.filter(is_published=True).count()
+    auto_news_count = news_qs.filter(is_auto_generated=True).count()
+
+    pages_qs = Page.objects.all()
+    total_pages = pages_qs.count()
+    published_pages = pages_qs.filter(is_published=True).count()
     
     # 6. Свежие записи для быстрого доступа
     recent_orders = orders_qs.select_related().order_by('-created_at')[:7]
     recent_callbacks = callbacks_qs.order_by('-created_at')[:5]
     recent_reviews = reviews_qs.order_by('-created_at')[:4]
     top_featured_products = products_qs.filter(is_featured=True).select_related('category')[:6]
+    recent_news = list(news_qs.order_by('-published_at', '-id')[:6])
+    recent_pages = list(pages_qs.order_by('-updated_at')[:5])
     
     # 7. Данные для графиков Chart.js
     order_statuses_data = {
@@ -132,6 +158,10 @@ def get_dashboard_statistics():
             'total_revenue': total_revenue,
             'paid_revenue': paid_revenue,
             'pending_revenue': pending_revenue,
+            'today_revenue': today_revenue,
+            'today_orders_count': today_orders_count,
+            'month_revenue': month_revenue,
+            'month_orders_count': month_orders_count,
             'avg_order_value': avg_order_value,
             'total_orders': total_orders,
             'new_orders_count': new_orders_count,
@@ -155,6 +185,13 @@ def get_dashboard_statistics():
             'total_articles': total_articles,
             'published_articles': published_articles,
             'total_article_views': total_article_views,
+            'total_news': total_news,
+            'published_news': published_news,
+            'auto_news_count': auto_news_count,
+            'total_pages': total_pages,
+            'published_pages': published_pages,
+            'total_faq_categories': FaqCategory.objects.count(),
+            'total_delivery_faqs': DeliveryFaq.objects.count(),
             'total_promotions': Promotion.objects.count(),
             'active_promotions': Promotion.objects.filter(is_active=True).count(),
             'total_promocodes': PromoCode.objects.count(),
@@ -178,6 +215,8 @@ def get_dashboard_statistics():
         'recent_callbacks': recent_callbacks,
         'recent_reviews': recent_reviews,
         'top_featured_products': top_featured_products,
+        'recent_news': recent_news,
+        'recent_pages': recent_pages,
         'site_settings_obj': site_settings,
         'chart_categories_json': json.dumps({
             'labels': chart_category_labels,

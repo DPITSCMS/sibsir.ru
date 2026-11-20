@@ -265,8 +265,8 @@
         </div>
 
         <!-- 5. Контент и Обратная связь (Dropdown) -->
-        <div class="admin-nav-dropdown {% if '/articles/' in request.path or '/callbackrequest/' in request.path or '/faq' in request.path or '/productionfeature/' in request.path or '/companytimeline/' in request.path or '/qualitycertificate/' in request.path or '/deliverymethod/' in request.path or '/paymentmethod/' in request.path or '/contactdepartment/' in request.path or '/sociallink/' in request.path or '/footerstatbanner/' in request.path %}active-parent{% endif %}" data-dropdown>
-            <button type="button" class="admin-nav-dropdown-btn {% if '/articles/' in request.path or '/callbackrequest/' in request.path or '/faq' in request.path or '/productionfeature/' in request.path or '/companytimeline/' in request.path or '/qualitycertificate/' in request.path or '/deliverymethod/' in request.path or '/paymentmethod/' in request.path or '/contactdepartment/' in request.path or '/sociallink/' in request.path or '/footerstatbanner/' in request.path %}active{% endif %}" aria-expanded="false" aria-haspopup="true">
+        <div class="admin-nav-dropdown {% if '/articles/' in request.path or '/news/' in request.path or '/page/' in request.path or '/callbackrequest/' in request.path or '/faq' in request.path or '/productionfeature/' in request.path or '/companytimeline/' in request.path or '/qualitycertificate/' in request.path or '/deliverymethod/' in request.path or '/paymentmethod/' in request.path or '/contactdepartment/' in request.path or '/sociallink/' in request.path or '/footerstatbanner/' in request.path %}active-parent{% endif %}" data-dropdown>
+            <button type="button" class="admin-nav-dropdown-btn {% if '/articles/' in request.path or '/news/' in request.path or '/page/' in request.path or '/callbackrequest/' in request.path or '/faq' in request.path or '/productionfeature/' in request.path or '/companytimeline/' in request.path or '/qualitycertificate/' in request.path or '/deliverymethod/' in request.path or '/paymentmethod/' in request.path or '/contactdepartment/' in request.path or '/sociallink/' in request.path or '/footerstatbanner/' in request.path %}active{% endif %}" aria-expanded="false" aria-haspopup="true">
                 <i class="bi bi-layout-text-window-reverse"></i>
                 <span>Контент</span>
                 {% if admin_nav_counts.pending_callbacks > 0 %}
@@ -280,6 +280,27 @@
                     <span>Информационные разделы и контент</span>
                 </div>
                 <div class="admin-dropdown-list admin-dropdown-grid-2">
+                    <a href="/admin/news/news/" class="admin-dropdown-item {% if '/news/news/' in request.path and not '/add/' in request.path %}active{% endif %}" role="menuitem">
+                        <div class="admin-dd-icon amber"><i class="bi bi-newspaper"></i></div>
+                        <div class="admin-dd-info">
+                            <span class="admin-dd-title">Новости и хроника</span>
+                            <span class="admin-dd-desc">События, новинки, авто-хроника</span>
+                        </div>
+                    </a>
+                    <a href="/admin/articles/article/" class="admin-dropdown-item {% if '/articles/article/' in request.path and not '/add/' in request.path %}active{% endif %}" role="menuitem">
+                        <div class="admin-dd-icon teal"><i class="bi bi-journal-bookmark-fill"></i></div>
+                        <div class="admin-dd-info">
+                            <span class="admin-dd-title">Статьи и блог</span>
+                            <span class="admin-dd-desc">Статьи о сыроделии и рецепты</span>
+                        </div>
+                    </a>
+                    <a href="/admin/main/page/" class="admin-dropdown-item {% if '/main/page/' in request.path and not '/add/' in request.path %}active{% endif %}" role="menuitem">
+                        <div class="admin-dd-icon emerald"><i class="bi bi-file-earmark-richtext-fill"></i></div>
+                        <div class="admin-dd-info">
+                            <span class="admin-dd-title">Страницы сайта (CMS)</span>
+                            <span class="admin-dd-desc">Динамические страницы, регламенты, SEO</span>
+                        </div>
+                    </a>
                     <a href="/admin/main/callbackrequest/" class="admin-dropdown-item {% if '/main/callbackrequest/' in request.path %}active{% endif %}" role="menuitem">
                         <div class="admin-dd-icon purple"><i class="bi bi-telephone-inbound-fill"></i></div>
                         <div class="admin-dd-info">
@@ -290,18 +311,11 @@
                         <span class="admin-dd-badge badge-warning">{{ admin_nav_counts.pending_callbacks }} нов.</span>
                         {% endif %}
                     </a>
-                    <a href="/admin/articles/article/" class="admin-dropdown-item {% if '/articles/article/' in request.path %}active{% endif %}" role="menuitem">
-                        <div class="admin-dd-icon teal"><i class="bi bi-journal-bookmark-fill"></i></div>
-                        <div class="admin-dd-info">
-                            <span class="admin-dd-title">Статьи и публикации</span>
-                            <span class="admin-dd-desc">Блог, новости, сыроделие</span>
-                        </div>
-                    </a>
                     <a href="/admin/main/faqitem/" class="admin-dropdown-item {% if '/main/faqitem/' in request.path or '/main/faqcategory/' in request.path %}active{% endif %}" role="menuitem">
                         <div class="admin-dd-icon blue"><i class="bi bi-question-circle-fill"></i></div>
                         <div class="admin-dd-info">
                             <span class="admin-dd-title">FAQ (Вопросы и ответы)</span>
-                            <span class="admin-dd-desc">Часто задаваемые вопросы</span>
+                            <span class="admin-dd-desc">Категории и база вопросов</span>
                         </div>
                     </a>
                     <a href="/admin/main/productionfeature/" class="admin-dropdown-item {% if '/main/productionfeature/' in request.path %}active{% endif %}" role="menuitem">
@@ -325,11 +339,11 @@
                             <span class="admin-dd-desc">ГОСТ, протоколы, награды</span>
                         </div>
                     </a>
-                    <a href="/admin/main/deliverymethod/" class="admin-dropdown-item {% if '/main/deliverymethod/' in request.path %}active{% endif %}" role="menuitem">
+                    <a href="/admin/main/deliverymethod/" class="admin-dropdown-item {% if '/main/deliverymethod/' in request.path or '/main/deliveryfaq/' in request.path %}active{% endif %}" role="menuitem">
                         <div class="admin-dd-icon indigo"><i class="bi bi-truck"></i></div>
                         <div class="admin-dd-info">
                             <span class="admin-dd-title">Способы доставки</span>
-                            <span class="admin-dd-desc">Тарифы и условия доставки</span>
+                            <span class="admin-dd-desc">Тарифы и FAQ по доставке</span>
                         </div>
                     </a>
                     <a href="/admin/main/paymentmethod/" class="admin-dropdown-item {% if '/main/paymentmethod/' in request.path %}active{% endif %}" role="menuitem">
@@ -359,6 +373,20 @@
                             <span class="admin-dd-title">Статистические баннеры</span>
                             <span class="admin-dd-desc">Счетчики и информеры в подвале</span>
                         </div>
+                    </a>
+                </div>
+                <div class="admin-dropdown-footer">
+                    <a href="/admin/news/news/add/" class="admin-dd-quick-btn" title="Добавить новую новость в ленту">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        <span>+ Новость</span>
+                    </a>
+                    <a href="/admin/articles/article/add/" class="admin-dd-quick-btn secondary" title="Написать новую статью в блог">
+                        <i class="bi bi-pencil-square"></i>
+                        <span>+ Статья</span>
+                    </a>
+                    <a href="/admin/main/page/add/" class="admin-dd-quick-btn secondary" title="Создать динамическую страницу CMS">
+                        <i class="bi bi-file-earmark-plus"></i>
+                        <span>+ Страница</span>
                     </a>
                 </div>
             </div>
@@ -498,11 +526,15 @@
                 <span>Контент и Сайт</span>
             </div>
             <div class="admin-drawer-links">
+                <a href="/admin/news/news/" class="{% if '/news/' in request.path %}active{% endif %}">
+                    <span>Новости и хроника</span>
+                </a>
+                <a href="/admin/articles/article/" class="{% if '/articles/article/' in request.path %}active{% endif %}">Статьи и блог</a>
+                <a href="/admin/main/page/" class="{% if '/main/page/' in request.path %}active{% endif %}">Страницы сайта (CMS)</a>
                 <a href="/admin/main/callbackrequest/" class="{% if '/main/callbackrequest/' in request.path %}active{% endif %}">
                     <span>Заявки на звонки</span>
                     {% if admin_nav_counts.pending_callbacks > 0 %}<span class="badge-count">{{ admin_nav_counts.pending_callbacks }}</span>{% endif %}
                 </a>
-                <a href="/admin/articles/article/" class="{% if '/articles/article/' in request.path %}active{% endif %}">Статьи и публикации</a>
                 <a href="/admin/main/faqitem/" class="{% if '/main/faqitem/' in request.path %}active{% endif %}">FAQ (Вопросы и ответы)</a>
                 <a href="/admin/main/productionfeature/" class="{% if '/main/productionfeature/' in request.path %}active{% endif %}">Преимущества производства</a>
                 <a href="/admin/main/companytimeline/" class="{% if '/main/companytimeline/' in request.path %}active{% endif %}">История развития завода</a>

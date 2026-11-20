@@ -24,31 +24,39 @@
             <p>Добро пожаловать, <strong>{% firstof user.get_full_name user.username %}</strong>! Сводка продаж, каталога и заявок на {% now "d E Y" %} г.</p>
             <div class="sib-hero-status-pill">
                 <span class="sib-pulse-dot"></span>
-                <span>Интернет-магазин и документооборот активны</span>
+                <span>Сегодня: <strong>{{ stats.today_revenue|floatformat:0 }} ₽</strong> (заказов: {{ stats.today_orders_count }}) • Система активна</span>
             </div>
         </div>
         <div class="sib-hero-actions">
-            <a href="/admin/shop/product/add/" class="sib-btn-action primary">
+            <a href="/admin/shop/product/add/" class="sib-btn-action primary" title="Добавить новый сыр в каталог">
                 <i class="bi bi-plus-circle-fill"></i>
-                <span>Добавить товар</span>
+                <span>+ Товар</span>
             </a>
-            <a href="/admin/shop/order/add/" class="sib-btn-action">
+            <a href="/admin/news/news/add/" class="sib-btn-action primary" style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);" title="Опубликовать новость компании">
+                <i class="bi bi-newspaper"></i>
+                <span>+ Новость</span>
+            </a>
+            <a href="/admin/shop/order/add/" class="sib-btn-action" title="Оформить заказ клиента вручную">
                 <i class="bi bi-cart-plus-fill"></i>
-                <span>Новый заказ</span>
+                <span>+ Заказ</span>
             </a>
-            <a href="/admin/main/sitesettings/1/change/" class="sib-btn-action">
+            <a href="/admin/main/page/add/" class="sib-btn-action" title="Создать динамическую страницу CMS">
+                <i class="bi bi-file-earmark-plus"></i>
+                <span>+ Страница</span>
+            </a>
+            <a href="/admin/main/sitesettings/1/change/" class="sib-btn-action" title="Реквизиты, контакты и брендинг">
                 <i class="bi bi-sliders"></i>
-                <span>Реквизиты и сайт</span>
+                <span>Реквизиты</span>
             </a>
             {% if user.is_superuser %}
             <a href="{% url 'main:admin_backup_dashboard' %}" class="sib-btn-action" title="Резервное копирование и перенос данных">
                 <i class="bi bi-shield-lock-fill"></i>
-                <span>Бэкап и деплой</span>
+                <span>Бэкап</span>
             </a>
             {% endif %}
-            <a href="/" target="_blank" class="sib-btn-action">
+            <a href="/" target="_blank" class="sib-btn-action" title="Перейти на витрину интернет-магазина">
                 <i class="bi bi-arrow-up-right-square"></i>
-                <span>Витрина сайта</span>
+                <span>Витрина</span>
             </a>
         </div>
     </div>
@@ -65,11 +73,14 @@
             </div>
             <div class="sib-kpi-value">{{ stats.total_revenue|floatformat:0 }} ₽</div>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                <span class="sib-kpi-badge badge-success">
+                <span class="sib-kpi-badge badge-success" title="Оплачено">
                     <i class="bi bi-check-circle"></i> Оплачено: {{ stats.paid_revenue|floatformat:0 }} ₽
                 </span>
-                <span class="sib-kpi-badge badge-warning">
-                    К оплате: {{ stats.pending_revenue|floatformat:0 }} ₽
+                <span class="sib-kpi-badge badge-info" title="Выручка за сегодняшние сутки">
+                    <i class="bi bi-clock-history"></i> Сегодня: {{ stats.today_revenue|floatformat:0 }} ₽
+                </span>
+                <span class="sib-kpi-badge badge-neutral" title="Выручка за текущий календарный месяц">
+                    <i class="bi bi-calendar3"></i> Месяц: {{ stats.month_revenue|floatformat:0 }} ₽
                 </span>
             </div>
         </div>
@@ -91,8 +102,11 @@
                 {% else %}
                 <span class="sib-kpi-badge badge-success">Все обработаны</span>
                 {% endif %}
+                <span class="sib-kpi-badge badge-info" title="Заказов за сегодня">
+                    <i class="bi bi-bag-plus"></i> Сегодня: {{ stats.today_orders_count }}
+                </span>
                 <span class="sib-kpi-badge badge-neutral">
-                    Юрлица: {{ stats.legal_orders_count }} | Физлица: {{ stats.individual_orders_count }}
+                    Юр: {{ stats.legal_orders_count }} | Физ: {{ stats.individual_orders_count }}
                 </span>
             </div>
         </div>
@@ -136,14 +150,16 @@
                 {% endif %}
                 {% if stats.pending_callbacks > 0 %}
                 <span class="sib-kpi-badge badge-warning">
-                    <i class="bi bi-exclamation-circle-fill"></i> {{ stats.pending_callbacks }} ждут ответа
+                    <i class="bi bi-exclamation-circle-fill"></i> {{ stats.pending_callbacks }} звонка ждут
                 </span>
                 {% else %}
-                <span class="sib-kpi-badge badge-success">Все закрыты</span>
+                <span class="sib-kpi-badge badge-success">Звонки закрыты</span>
                 {% endif %}
-                <span class="sib-kpi-badge badge-neutral">
-                    Обработано: {{ stats.processed_callbacks }}
-                </span>
+                {% if stats.pending_reviews > 0 %}
+                <a href="/admin/shop/review/?is_approved__exact=0" class="sib-kpi-badge badge-warning" style="text-decoration: none; background: #fef3c7; color: #b45309;" title="Отзывы ждут проверки">
+                    <i class="bi bi-star-fill"></i> {{ stats.pending_reviews }} отзывов на проверку
+                </a>
+                {% endif %}
             </div>
         </div>
 
@@ -166,21 +182,27 @@
             </div>
         </div>
 
-        <!-- Карточка 6: База знаний и статьи -->
+        <!-- Карточка 6: База знаний, статьи и новости -->
         <div class="sib-kpi-card">
             <div class="sib-kpi-header">
-                <span class="sib-kpi-title">Статьи и просмотры</span>
+                <span class="sib-kpi-title">Публикации и медиа</span>
                 <div class="sib-kpi-icon-wrap icon-teal">
                     <i class="bi bi-journal-richtext"></i>
                 </div>
             </div>
-            <div class="sib-kpi-value">{{ stats.total_article_views }} <span style="font-size: 1rem; color: #64748b; font-weight: normal;">просмотров</span></div>
+            <div class="sib-kpi-value">{{ stats.total_articles|add:stats.total_news }} <span style="font-size: 1rem; color: #64748b; font-weight: normal;">материалов</span></div>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                <span class="sib-kpi-badge badge-info">
-                    {{ stats.total_articles }} статей
+                <span class="sib-kpi-badge badge-info" title="Статьи о сыре">
+                    <i class="bi bi-journal-bookmark-fill"></i> {{ stats.total_articles }} статей
                 </span>
-                <span class="sib-kpi-badge badge-success">
-                    Опубликованы
+                <span class="sib-kpi-badge badge-success" title="Новости компании">
+                    <i class="bi bi-newspaper"></i> {{ stats.total_news }} новостей
+                </span>
+                <span class="sib-kpi-badge badge-neutral" title="Динамические страницы CMS">
+                    <i class="bi bi-file-earmark-richtext"></i> {{ stats.total_pages }} CMS
+                </span>
+                <span class="sib-kpi-badge badge-neutral" title="Суммарные просмотры статей">
+                    <i class="bi bi-eye"></i> {{ stats.total_article_views }} просм.
                 </span>
             </div>
         </div>
@@ -486,6 +508,105 @@
         </div>
     </div>
 
+    <!-- 6.1. Свежие новости и хроника компании -->
+    <div class="sib-panel-card" style="margin-bottom: 24px;">
+        <div class="sib-panel-header">
+            <h3>
+                <i class="bi bi-newspaper" style="color: #ff8400;"></i>
+                Свежие новости и хроника событий компании
+            </h3>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="/admin/news/news/add/" class="sib-btn-action primary" style="padding: 4px 12px; font-size: 0.82rem; text-decoration: none;" title="Создать новость">
+                    <i class="bi bi-plus-circle-fill"></i> Добавить новость
+                </a>
+                <a href="/admin/news/news/" class="sib-panel-link">
+                    Все новости ({{ stats.total_news }}) <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="sib-panel-body">
+            {% if recent_news %}
+            <div class="sib-table-responsive">
+            <table class="sib-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">Фото</th>
+                        <th>Заголовок новости</th>
+                        <th>Тип / Рубрика</th>
+                        <th>Источник</th>
+                        <th>Дата публикации</th>
+                        <th>Просмотры</th>
+                        <th>Статус</th>
+                        <th style="text-align: right;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for n in recent_news %}
+                    <tr>
+                        <td style="width: 50px;">
+                            <img src="{{ n.image_url }}" alt="" style="width: 44px; height: 32px; object-fit: cover; border-radius: 6px; border: 1px solid var(--admin-border-color);">
+                        </td>
+                        <td>
+                            <a href="/admin/news/news/{{ n.id }}/change/" style="font-weight: 700; color: var(--admin-text-title); text-decoration: none;">
+                                {{ n.title|truncatechars:55 }}
+                            </a>
+                            {% if n.snippet %}
+                            <div style="font-size: 0.78rem; color: var(--admin-text-muted); margin-top: 2px;">{{ n.snippet|truncatechars:70 }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(255, 132, 0, 0.12); color: #ea580c;">
+                                {{ n.get_news_type_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if n.is_auto_generated %}
+                            <span style="font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(99, 102, 241, 0.12); color: #6366f1;" title="Сгенерирована автоматически при изменении на сайте">
+                                🤖 Авто{% if n.source_model %} ({{ n.source_model }}){% endif %}
+                            </span>
+                            {% else %}
+                            <span style="font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: var(--admin-input-bg); color: var(--admin-text-muted);">
+                                ✍️ Ручная
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-size: 0.82rem; font-weight: 600; color: var(--admin-text-main);">
+                                {{ n.formatted_date }}
+                            </div>
+                            <small style="color: var(--admin-text-muted); font-size: 0.72rem;">{{ n.formatted_time }} ({{ n.weekday_name }})</small>
+                        </td>
+                        <td>
+                            <span style="font-size: 0.82rem; color: var(--admin-text-muted);"><i class="bi bi-eye"></i> {{ n.views_count }}</span>
+                        </td>
+                        <td>
+                            {% if n.is_published %}
+                            <span style="color: #16a34a; font-weight: 600; font-size: 0.8rem;">● Опубликовано</span>
+                            {% else %}
+                            <span style="color: #f59e0b; font-weight: 600; font-size: 0.8rem;">○ Черновик</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right; white-space: nowrap;">
+                            <a href="/admin/news/news/{{ n.id }}/change/" class="sib-print-btn btn-receipt" title="Редактировать новость" style="margin-right: 4px;">
+                                <i class="bi bi-pencil-fill"></i>
+                            </a>
+                            <a href="{{ n.get_absolute_url }}" target="_blank" class="sib-print-btn btn-waybill" title="Открыть новость на сайте">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div style="padding: 24px; text-align: center; color: var(--admin-text-muted);">
+                Новостей пока нет. <a href="/admin/news/news/add/" style="color: var(--admin-primary); font-weight: 600;">Создайте первую новость</a> или они сгенерируются автоматически при добавлении товаров и статей!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- 7. Структурированные модули управления (Разделы приложений) -->
     <div class="sib-apps-section">
         <div class="sib-section-header-row">
@@ -693,6 +814,19 @@
                     <span style="font-size: 0.78rem; color: #64748b; font-weight: 700;">CONTENT</span>
                 </div>
                 <ul class="sib-app-models">
+                    <li class="sib-app-model-row" data-model="новости хроника события лента автогенерация news">
+                        <a href="/admin/news/news/" class="sib-model-name">
+                            <i class="bi bi-newspaper" style="color: #ff8400;"></i>
+                            <span>Новости и хроника компании</span>
+                        </a>
+                        <div class="sib-model-actions">
+                            {% if stats.auto_news_count > 0 %}
+                            <span class="sib-mini-badge warning" title="Сгенерировано автоматически">{{ stats.auto_news_count }} авто</span>
+                            {% endif %}
+                            <span class="sib-mini-counter">{{ stats.total_news }}</span>
+                            <a href="/admin/news/news/add/" class="sib-btn-add" title="Добавить новость">+</a>
+                        </div>
+                    </li>
                     <li class="sib-app-model-row" data-model="статьи публикации блог сыроделие новости article">
                         <a href="/admin/articles/article/" class="sib-model-name">
                             <i class="bi bi-journal-bookmark-fill" style="color: #14b8a6;"></i>
@@ -703,6 +837,16 @@
                             <a href="/admin/articles/article/add/" class="sib-btn-add" title="Написать статью">+</a>
                         </div>
                     </li>
+                    <li class="sib-app-model-row" data-model="динамические страницы cms регламенты документы page">
+                        <a href="/admin/main/page/" class="sib-model-name">
+                            <i class="bi bi-file-earmark-richtext-fill" style="color: #10b981;"></i>
+                            <span>Динамические страницы (CMS)</span>
+                        </a>
+                        <div class="sib-model-actions">
+                            <span class="sib-mini-counter">{{ stats.total_pages }}</span>
+                            <a href="/admin/main/page/add/" class="sib-btn-add" title="Создать страницу CMS">+</a>
+                        </div>
+                    </li>
                     <li class="sib-app-model-row" data-model="вопросы и ответы faq faqitem">
                         <a href="/admin/main/faqitem/" class="sib-model-name">
                             <i class="bi bi-question-circle-fill" style="color: #0284c7;"></i>
@@ -711,6 +855,26 @@
                         <div class="sib-model-actions">
                             <span class="sib-mini-counter">{{ stats.total_faqs }}</span>
                             <a href="/admin/main/faqitem/add/" class="sib-btn-add" title="Добавить вопрос">+</a>
+                        </div>
+                    </li>
+                    <li class="sib-app-model-row" data-model="категории вопросов faq разделы faqcategory">
+                        <a href="/admin/main/faqcategory/" class="sib-model-name">
+                            <i class="bi bi-folder2-open" style="color: #0ea5e9;"></i>
+                            <span>Категории вопросов FAQ</span>
+                        </a>
+                        <div class="sib-model-actions">
+                            <span class="sib-mini-counter">{{ stats.total_faq_categories }}</span>
+                            <a href="/admin/main/faqcategory/add/" class="sib-btn-add" title="Добавить категорию FAQ">+</a>
+                        </div>
+                    </li>
+                    <li class="sib-app-model-row" data-model="faq доставка условия перевозка deliveryfaq">
+                        <a href="/admin/main/deliveryfaq/" class="sib-model-name">
+                            <i class="bi bi-question-diamond-fill" style="color: #6366f1;"></i>
+                            <span>FAQ по доставке</span>
+                        </a>
+                        <div class="sib-model-actions">
+                            <span class="sib-mini-counter">{{ stats.total_delivery_faqs }}</span>
+                            <a href="/admin/main/deliveryfaq/add/" class="sib-btn-add" title="Добавить вопрос по доставке">+</a>
                         </div>
                     </li>
                     <li class="sib-app-model-row" data-model="преимущества завода производства productionfeature">

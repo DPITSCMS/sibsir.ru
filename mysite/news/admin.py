@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils import timezone
 from .models import News
 from .forms import NewsAdminForm
@@ -9,6 +10,9 @@ from .forms import NewsAdminForm
 class NewsAdmin(admin.ModelAdmin):
     form = NewsAdminForm
     date_hierarchy = "published_at"
+    save_on_top = True
+    list_per_page = 25
+    view_on_site = True
     list_display = (
         "published_at_formatted",
         "image_thumbnail",
@@ -17,6 +21,7 @@ class NewsAdmin(admin.ModelAdmin):
         "is_auto_generated_badge",
         "views_count",
         "is_published",
+        "view_link",
     )
     list_display_links = ("title",)
     list_editable = ("is_published",)
@@ -26,7 +31,7 @@ class NewsAdmin(admin.ModelAdmin):
         "is_auto_generated",
         ("published_at", admin.DateFieldListFilter),
     )
-    search_fields = ("title", "snippet", "content", "slug")
+    search_fields = ("title", "snippet", "content", "slug", "source_model")
     prepopulated_fields = {"slug": ("title",)}
     readonly_fields = ("created_at", "updated_at", "is_auto_generated", "source_model", "source_action")
 
@@ -101,7 +106,7 @@ class NewsAdmin(admin.ModelAdmin):
                 '<span style="color: #6366f1; font-size: 11px; font-weight: 600;">🤖 Авто{}</span>',
                 action
             )
-        return format_html('<span style="color: #64748b; font-size: 11px;">✍️ Ручная</span>')
+        return mark_safe('<span style="color: #64748b; font-size: 11px;">✍️ Ручная</span>')
 
     @admin.display(description="Превью")
     def image_thumbnail(self, obj):
@@ -112,6 +117,16 @@ class NewsAdmin(admin.ModelAdmin):
                 url
             )
         return "-"
+
+    @admin.display(description="Витрина")
+    def view_link(self, obj):
+        if obj.is_published:
+            return format_html(
+                '<a href="{}" target="_blank" title="Открыть новость на сайте" style="color: var(--admin-primary); text-decoration: none; font-size: 0.85rem; font-weight: 600;">'
+                '<i class="bi bi-box-arrow-up-right"></i> На сайт</a>',
+                obj.get_absolute_url()
+            )
+        return mark_safe('<span style="color: #94a3b8; font-size: 0.78rem;">Черновик</span>')
 
     @admin.action(description="Опубликовать выбранные новости")
     def make_published(self, request, queryset):

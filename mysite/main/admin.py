@@ -230,7 +230,7 @@ class SiteSettingsAdmin(RichTextAdminMixin, admin.ModelAdmin):
 
     def captcha_status_badge(self, obj):
         if not obj.captcha_enabled:
-            return format_html(
+            return mark_safe(
                 '<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 11px;">'
                 '<i class="bi bi-x-circle me-1"></i>Отключена</span>'
             )
@@ -269,7 +269,7 @@ class SiteSettingsAdmin(RichTextAdminMixin, admin.ModelAdmin):
                 obj.logo.url,
                 obj.logo.url
             )
-        return format_html(
+        return mark_safe(
             '<div class="sib-preview-empty">'
             '<div class="brand-icon-box" style="width: 38px; height: 38px; font-size: 1.1rem; border-radius: 8px;">'
             '<i class="bi bi-award-fill"></i>'
@@ -332,7 +332,7 @@ class SiteSettingsAdmin(RichTextAdminMixin, admin.ModelAdmin):
                 '</div>',
                 url
             )
-        return format_html('<span style="color:#94a3b8; font-size:13px;">Карта не настроена</span>')
+        return mark_safe('<span style="color:#94a3b8; font-size:13px;">Карта не настроена</span>')
     yandex_map_preview.short_description = "Предпросмотр карты"
 
     def formfield_for_dbfield(self, db_field, request, **kwargs):
@@ -1047,7 +1047,7 @@ class SocialLinkAdmin(admin.ModelAdmin):
                 '</div>',
                 obj.bootstrap_icon
             )
-        return format_html(
+        return mark_safe(
             '<div style="width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: #64748b; color: #fff; border-radius: 8px;">'
             '<i class="bi bi-link-45deg"></i>'
             '</div>'
@@ -1069,7 +1069,7 @@ class SocialLinkAdmin(admin.ModelAdmin):
                 '</div>',
                 icon_url, obj.name
             )
-        return format_html('<span style="color: #94a3b8; font-size: 12px;">Файл иконки не загружен (будет использована иконка по умолчанию или Bootstrap)</span>')
+        return mark_safe('<span style="color: #94a3b8; font-size: 12px;">Файл иконки не загружен (будет использована иконка по умолчанию или Bootstrap)</span>')
     icon_preview.short_description = "Вид иконки"
 
     def url_link(self, obj):
@@ -1329,7 +1329,7 @@ class PageAdmin(RichTextAdminMixin, DragDropReorderMixin, admin.ModelAdmin):
         if obj.show_in_footer:
             items.append('<span style="background: #f1f5f9; color: #475569; padding: 2px 5px; border-radius: 4px; font-size: 10px; font-weight: 600;">Подвал</span>')
         if not items:
-            return format_html('<span style="color: #94a3b8; font-size: 11px;">Прямой URL</span>')
+            return mark_safe('<span style="color: #94a3b8; font-size: 11px;">Прямой URL</span>')
         return mark_safe(" ".join(items))
     nav_badges.short_description = "В меню"
 
@@ -1340,8 +1340,8 @@ class PageAdmin(RichTextAdminMixin, DragDropReorderMixin, admin.ModelAdmin):
                 obj.sitemap_priority
             )
         elif "noindex" in obj.meta_robots_index:
-            return format_html('<span style="color: #ef4444; font-size: 11px;">noindex</span>')
-        return format_html('<span style="color: #94a3b8; font-size: 11px;">Скрыто</span>')
+            return mark_safe('<span style="color: #ef4444; font-size: 11px;">noindex</span>')
+        return mark_safe('<span style="color: #94a3b8; font-size: 11px;">Скрыто</span>')
     sitemap_badge.short_description = "Sitemap"
 
     def views_count_badge(self, obj):
@@ -1353,17 +1353,17 @@ class PageAdmin(RichTextAdminMixin, DragDropReorderMixin, admin.ModelAdmin):
 
     def published_status(self, obj):
         if obj.is_published:
-            return format_html(
+            return mark_safe(
                 '<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">Активна</span>'
             )
-        return format_html(
+        return mark_safe(
             '<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">Черновик</span>'
         )
     published_status.short_description = "Статус"
 
     def direct_url_preview(self, obj):
         if not obj or not obj.pk:
-            return format_html('<span style="color: #94a3b8; font-size: 12px;">Адрес будет доступен после сохранения</span>')
+            return mark_safe('<span style="color: #94a3b8; font-size: 12px;">Адрес будет доступен после сохранения</span>')
         main_url = obj.get_absolute_url()
         direct_url = f"/{obj.slug}/"
         pages_url = f"/pages/{obj.slug}/"
@@ -1396,7 +1396,7 @@ class PageAdmin(RichTextAdminMixin, DragDropReorderMixin, admin.ModelAdmin):
                 '</div>',
                 obj.featured_image.url
             )
-        return format_html('<span style="color: #94a3b8; font-size: 12px;">Обложка не загружена</span>')
+        return mark_safe('<span style="color: #94a3b8; font-size: 12px;">Обложка не загружена</span>')
     featured_image_preview.short_description = "Превью обложки"
 
     def og_image_preview(self, obj):
@@ -1407,7 +1407,7 @@ class PageAdmin(RichTextAdminMixin, DragDropReorderMixin, admin.ModelAdmin):
                 '</div>',
                 obj.og_image.url
             )
-        return format_html('<span style="color: #94a3b8; font-size: 12px;">Изображение соцсетей не загружено (будет использована обложка)</span>')
+        return mark_safe('<span style="color: #94a3b8; font-size: 12px;">Изображение соцсетей не загружено (будет использована обложка)</span>')
     og_image_preview.short_description = "Превью соцсетей"
 
     def seo_live_preview(self, obj):
@@ -1547,12 +1547,12 @@ class FooterStatBannerAdmin(DragDropReorderMixin, admin.ModelAdmin):
                 obj.image.url, obj.name
             )
         elif obj.banner_type == FooterStatBanner.BANNER_TYPE_HTML and obj.html_code:
-            return format_html(
+            return mark_safe(
                 '<div style="display: inline-flex; align-items: center; gap: 4px; background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">'
                 '<i class="bi bi-code-slash"></i> HTML-код'
                 '</div>'
             )
-        return format_html(
+        return mark_safe(
             '<div style="min-width: 88px; height: 31px; display: inline-flex; align-items: center; justify-content: center; background: #f1f5f9; color: #94a3b8; border-radius: 4px; font-size: 11px; border: 1px dashed #cbd5e1;">'
             'Без баннера'
             '</div>'
@@ -1561,8 +1561,8 @@ class FooterStatBannerAdmin(DragDropReorderMixin, admin.ModelAdmin):
 
     def banner_type_badge(self, obj):
         if obj.banner_type == FooterStatBanner.BANNER_TYPE_IMAGE:
-            return format_html('<span style="background: #ecfdf5; color: #047857; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">🖼 Картинка</span>')
-        return format_html('<span style="background: #eff6ff; color: #1d4ed8; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">💻 Код информера</span>')
+            return mark_safe('<span style="background: #ecfdf5; color: #047857; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">🖼 Картинка</span>')
+        return mark_safe('<span style="background: #eff6ff; color: #1d4ed8; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">💻 Код информера</span>')
     banner_type_badge.short_description = "Тип баннера"
 
     def click_url_display(self, obj):
@@ -1574,7 +1574,7 @@ class FooterStatBannerAdmin(DragDropReorderMixin, admin.ModelAdmin):
                 '</a>',
                 obj.url, short_url
             )
-        return format_html('<span style="color: #94a3b8;">—</span>')
+        return mark_safe('<span style="color: #94a3b8;">—</span>')
     click_url_display.short_description = "Ссылка перехода"
 
     def preview_detail(self, obj):
