@@ -1939,30 +1939,326 @@ body {
 
 /* ----------------- FOOTER ----------------- */
 .site-footer {
-    background: #0f172a;
+    background: linear-gradient(180deg, #0b1329 0%, #060a16 100%);
     color: #94a3b8;
-    padding: 3.5rem 0 1.5rem;
-    margin-top: 4rem;
+    padding: 4rem 0 1.75rem;
+    margin-top: 4.5rem;
+    border-top: 2px solid rgba(255, 132, 0, 0.35);
+    position: relative;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
+}
+
+.footer-brand-wrap .brand-logo-img-footer {
+    height: 44px;
+    width: auto;
+    object-fit: contain;
+}
+
+.footer-brand-tagline {
+    font-size: 0.75rem;
+    color: #f59e0b;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.footer-legal-badge {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+.footer-about-text {
+    font-size: 0.84rem;
+    color: #94a3b8;
+    line-height: 1.55;
+}
+
+/* Фирменные бейджи доверия */
+.footer-trust-chips {
+    margin-top: 0.5rem;
+}
+
+.footer-trust-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: #cbd5e1;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.footer-trust-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 132, 0, 0.35);
+    color: #ffffff;
+}
+
+.footer-admin-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.footer-admin-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Заголовки колонок футера */
+.footer-heading {
+    color: #ffffff;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    padding-bottom: 0.65rem;
+}
+
+.footer-heading::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 32px;
+    height: 2.5px;
+    background: linear-gradient(90deg, var(--primary-orange, #ff8400), #ffb703);
+    border-radius: 2px;
+}
+
+.footer-heading-icon {
+    color: var(--primary-orange, #ff8400);
+    font-size: 1.05rem;
+    display: inline-flex;
+}
+
+/* Ссылки навигации в футере с иконками */
+.footer-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .footer-link {
-    color: #cbd5e1;
+    color: #94a3b8;
     text-decoration: none;
-    font-size: 0.9rem;
-    transition: color 0.2s ease;
-    display: inline-block;
-    margin-bottom: 0.5rem;
+    font-size: 0.88rem;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    padding: 0.32rem 0;
+    line-height: 1.35;
+    border-radius: 6px;
 }
 
 .footer-link:hover {
-    color: var(--primary-orange);
+    color: #ffffff;
+    transform: translateX(4px);
+}
+
+.footer-link-icon {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    color: #f59e0b;
+    margin-right: 8px;
+    flex-shrink: 0;
+    transition: transform 0.22s ease, color 0.22s ease;
+}
+
+.footer-link:hover .footer-link-icon {
+    color: var(--primary-orange, #ff8400);
+    transform: scale(1.15);
+}
+
+.footer-link-text {
+    flex: 1;
+}
+
+.footer-link-subtle {
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+.footer-link-highlight {
+    color: #fbbf24;
+    font-weight: 600;
+}
+
+.footer-link-highlight:hover {
+    color: #ffffff;
+}
+
+.footer-arrow-hint {
+    font-size: 0.75rem;
+    opacity: 0.55;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.footer-link:hover .footer-arrow-hint {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+.footer-nav-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 0.55rem 0;
+}
+
+.footer-badge-opt {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    background: #f59e0b;
+    color: #0f172a;
+    padding: 2px 6px;
+    border-radius: 5px;
+    line-height: 1;
+}
+
+/* Карточки контактов в футере */
+.footer-contacts-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.footer-contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    text-decoration: none;
+    color: #cbd5e1;
+    padding: 3px 0;
+    transition: color 0.2s ease;
+}
+
+.footer-contact-link:hover {
+    color: #ffffff;
+}
+
+.footer-contact-link:hover .footer-contact-icon-box {
+    background: rgba(255, 132, 0, 0.25);
+    border-color: rgba(255, 132, 0, 0.6);
+    transform: scale(1.06);
+    color: #ffffff;
+}
+
+.footer-contact-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 132, 0, 0.12);
+    border: 1px solid rgba(255, 132, 0, 0.25);
+    color: var(--primary-orange, #ff8400);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.footer-contact-val {
+    font-size: 0.9rem;
+    color: #f1f5f9;
+    line-height: 1.25;
+}
+
+.footer-contact-phone .footer-contact-val {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.02em;
+}
+
+.footer-contact-sub {
+    font-size: 0.74rem;
+    color: #94a3b8;
+    line-height: 1.25;
+    margin-top: 2px;
+}
+
+.footer-cta-btn {
+    padding: 0.75rem 1.1rem;
+    font-weight: 600;
+    font-size: 0.88rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(255, 132, 0, 0.3);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.footer-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 132, 0, 0.45);
+}
+
+/* Разделитель и нижняя строка футера */
+.footer-bottom-divider {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0) 100%);
+    margin: 2.75rem 0 1.5rem;
 }
 
 .footer-bottom-row {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding-top: 1.5rem;
-    margin-top: 2.5rem;
     font-size: 0.82rem;
+}
+
+.footer-copyright {
+    font-weight: 500;
+}
+
+.footer-sublink {
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.2);
+}
+
+.footer-sublink:hover {
+    color: #ffffff !important;
+}
+
+.footer-legal-link {
+    color: #94a3b8;
+    font-size: 0.82rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.2s ease;
+}
+
+.footer-legal-link:hover {
+    color: var(--primary-orange, #ff8400);
+    text-decoration: underline;
+}
+
+.footer-studio-link {
+    transition: color 0.2s ease;
+}
+
+.footer-studio-link:hover {
+    color: var(--primary-orange, #ff8400) !important;
 }
 
 /* Социальные сети в подвале сайта */
