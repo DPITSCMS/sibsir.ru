@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title|default:"Новости и события сыроварни — Сибсыр" }}{% endblock %}
+
+{% block meta_description %}{{ page_description }}{% endblock %}
+{% block meta_keywords %}{{ page_keywords }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- 1. BREADCRUMBS -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb mb-0 py-2 px-3 bg-white rounded-pill shadow-sm border border-light-subtle d-inline-flex">
+            <li class="breadcrumb-item">
+                <a href="{% url 'main:index' %}" class="text-decoration-none text-muted">
+                    <i class="bi bi-house-door me-1"></i>Главная
+                </a>
+            </li>
+            <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Новости сыроварни</li>
+        </ol>
+    </nav>
+
+    <!-- 2. HERO & SEARCH HEADER -->
+    <div class="p-4 p-md-5 rounded-4 mb-4 shadow-sm" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; position: relative; overflow: hidden;">
+        <div style="position: absolute; right: -20px; bottom: -30px; opacity: 0.05; font-size: 14rem; pointer-events: none; line-height: 1;">
+            <i class="bi bi-newspaper"></i>
+        </div>
+        <div class="row align-items-center g-4 position-relative" style="z-index: 2;">
+            <div class="col-lg-7">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background: rgba(255, 132, 0, 0.15); border: 1px solid rgba(255, 132, 0, 0.35); color: #ffaa33; font-size: 0.82rem; font-weight: 600;">
+                    <i class="bi bi-broadcast"></i>
+                    <span>Пресс-центр • События и обновления сайта</span>
+                </div>
+                <h1 class="display-6 fw-bold text-white mb-2">Новости и события сыроварни «Сибсыр»</h1>
+                <p class="text-white-50 mb-3" style="font-size: 1.05rem; max-width: 620px;">
+                    Свежие поступления в каталог, новинки ремесленных сыров, выгодные акции, публикации базы знаний и хроника развития нашего производства.
+                </p>
+                <div class="d-flex flex-wrap align-items-center gap-3 text-white-50 small">
+                    <div><i class="bi bi-collection text-warning me-1"></i> <strong>{{ total_count }}</strong> публикаций в ленте</div>
+                    <div><i class="bi bi-calendar3-range text-info me-1"></i> Группировка по годам, месяцам и дням</div>
+                    {% if request.user.is_staff %}
+                    <a href="{% url 'news:news_create' %}" class="btn btn-sm btn-sib-orange text-white rounded-pill px-3 py-1">
+                        <i class="bi bi-plus-circle me-1"></i> Добавить новость
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="bg-white p-3 p-md-4 rounded-4 shadow-lg text-dark">
+                    <form method="get" action="{% url 'news:news_list' %}" id="newsSearchForm">
+                        <label for="newsSearchInput" class="form-label small fw-bold text-muted mb-2 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-search text-warning me-1"></i>Поиск по новостям</span>
+                            <span class="badge bg-light text-dark border">{{ total_count }} новостей</span>
+                        </label>
+                        <div class="position-relative">
+                            <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 14px;"></i>
+                            <input type="text" 
+                                   name="q"
+                                   id="newsSearchInput" 
+                                   value="{{ query }}"
+                                   class="form-control form-control-lg pe-5" 
+                                   style="padding-left: 2.6rem; font-size: 0.95rem; border-radius: 14px; border: 1.5px solid #e2e8f0;" 
+                                   placeholder="Поиск по названию или тексту..." 
+                                   title="Поиск новости">
+                            {% if query or selected_year or selected_month or selected_type or selected_date %}
+                                <a href="{% url 'news:news_list' %}" 
+                                   class="btn btn-sm btn-link text-muted position-absolute top-50 translate-middle-y end-0 me-2" 
+                                   title="Сбросить все фильтры">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+
+                        <!-- Быстрый выбор конкретной даты -->
+                        <div class="mt-3 pt-2 border-top">
+                            <div class="d-flex align-items-center justify-content-between gap-2">
+                                <label for="dateFilterInput" class="small text-muted fw-semibold mb-0" style="font-size: 0.8rem;">
+                                    <i class="bi bi-calendar-event text-warning me-1"></i>Выбрать точную дату:
+                                </label>
+                                <input type="date" 
+                                       name="date" 
+                                       id="dateFilterInput" 
+                                       value="{{ selected_date }}"
+                                       class="form-control form-control-sm" 
+                                       style="max-width: 160px; border-radius: 8px;"
+                                       onchange="document.getElementById('newsSearchForm').submit();">
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="text-muted small" style="font-size: 0.78rem;">
+                                <i class="bi bi-funnel me-1"></i>Фильтрация по датам
+                            </span>
+                            <button type="submit" class="btn btn-sm btn-sib-orange py-1 px-3" style="font-size: 0.8rem;">
+                                Применить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. DATE GROUPING & ARCHIVE NAVIGATION BAR (ГОД -> МЕСЯЦ) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white p-3 p-md-4">
+        <div class="row g-3 align-items-center">
+            
+            <!-- Выбор года -->
+            <div class="col-lg-6">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-dark rounded-pill px-2 py-1"><i class="bi bi-calendar-check me-1"></i>Год</span>
+                    <span class="fw-bold text-dark small">Хронология по годам:</span>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'news:news_list' %}{% if selected_type %}?type={{ selected_type }}{% endif %}" 
+                       class="btn btn-sm rounded-pill px-3 py-1 {% if not selected_year and not selected_date %}btn-dark{% else %}btn-outline-secondary bg-light{% endif %}">
+                        Все года <span class="badge bg-secondary-subtle text-secondary ms-1">{{ all_count }}</span>
+                    </a>
+                    {% for yr in available_years %}
+                    <a href="{% url 'news:news_list' %}?year={{ yr.year }}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
+                       class="btn btn-sm rounded-pill px-3 py-1 {% if yr.is_active %}btn-dark{% else %}btn-outline-secondary bg-light{% endif %}">
+                        {{ yr.year }} <span class="badge {% if yr.is_active %}bg-warning text-dark{% else %}bg-secondary-subtle text-secondary{% endif %} ms-1">{{ yr.count }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Выбор месяца -->
+            <div class="col-lg-6 border-start-lg">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-warning text-dark rounded-pill px-2 py-1"><i class="bi bi-calendar3 me-1"></i>Месяц</span>
+                    <span class="fw-bold text-dark small">Фильтр по месяцам:</span>
+                </div>
+                <div class="d-flex flex-wrap gap-1">
+                    {% for mn in available_months %}
+                    <a href="{% url 'news:news_list' %}?year={{ mn.year }}&month={{ mn.month_num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" 
+                       class="btn btn-sm rounded-pill px-2 py-0 {% if mn.is_active %}btn-warning text-dark fw-bold{% else %}btn-outline-secondary bg-white text-muted{% endif %}" 
+                       style="font-size: 0.78rem;">
+                        {{ mn.month_name }}
+                        {% if mn.count > 0 %}
+                        <span class="badge {% if mn.is_active %}bg-dark text-white{% else %}bg-light text-dark border{% endif %} ms-1">{{ mn.count }}</span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Фильтр по типам новостей -->
+        <div class="mt-3 pt-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-1" style="font-size: 0.82rem;">
+                <span class="text-muted fw-bold me-2" style="font-size: 0.75rem; text-transform: uppercase;">
+                    <i class="bi bi-tag-fill text-warning me-1"></i>Разделы:
+                </span>
+                <a href="{% url 'news:news_list' %}{% if selected_year %}?year={{ selected_year }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}" 
+                   class="badge text-decoration-none {% if not selected_type or selected_type == 'all' %}bg-dark text-white{% else %}bg-light text-dark border{% endif %} px-3 py-2 rounded-pill">
+                    Все темы
+                </a>
+                <a href="{% url 'news:news_list' %}?type=product{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}" 
+                   class="badge text-decoration-none {% if selected_type == 'product' %}bg-success text-white{% else %}bg-light text-dark border{% endif %} px-3 py-2 rounded-pill">
+                    <i class="bi bi-bag-check-fill me-1"></i>Новинки каталога
+                </a>
+                <a href="{% url 'news:news_list' %}?type=promo{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}" 
+                   class="badge text-decoration-none {% if selected_type == 'promo' %}bg-danger text-white{% else %}bg-light text-dark border{% endif %} px-3 py-2 rounded-pill">
+                    <i class="bi bi-percent me-1"></i>Акции и скидки
+                </a>
+                <a href="{% url 'news:news_list' %}?type=article{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}" 
+                   class="badge text-decoration-none {% if selected_type == 'article' %}bg-primary text-white{% else %}bg-light text-dark border{% endif %} px-3 py-2 rounded-pill">
+                    <i class="bi bi-journal-richtext me-1"></i>Статьи блога
+                </a>
+                <a href="{% url 'news:news_list' %}?type=edit{% if selected_year %}&year={{ selected_year }}{% endif %}{% if selected_month %}&month={{ selected_month }}{% endif %}" 
+                   class="badge text-decoration-none {% if selected_type == 'edit' %}bg-info text-dark{% else %}bg-light text-dark border{% endif %} px-3 py-2 rounded-pill">
+                    <i class="bi bi-pencil-square me-1"></i>Обновления новостей
+                </a>
+            </div>
+
+            {% if query or selected_year or selected_month or selected_type or selected_date %}
+            <div>
+                <a href="{% url 'news:news_list' %}" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1">
+                    <i class="bi bi-x-circle me-1"></i>Сбросить фильтры
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 4. HIERARCHICAL NEWS FEED: ГОД -> МЕСЯЦ -> ДЕНЬ -->
+    {% if grouped_years %}
+        <div class="news-timeline-container">
+            {% for y_group in grouped_years %}
+                <div class="year-block mb-5">
+                    
+                    <!-- Заголовок Года -->
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="year-badge shadow-sm px-4 py-2 rounded-4 fw-bold text-white d-inline-flex align-items-center gap-2" 
+                             style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); font-size: 1.25rem;">
+                            <i class="bi bi-calendar-event text-warning"></i>
+                            <span>{{ y_group.year_title }}</span>
+                        </div>
+                        <div class="flex-grow-1 border-bottom border-2 border-secondary-subtle opacity-50"></div>
+                        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small">
+                            {{ y_group.count }} новостей
+                        </span>
+                    </div>
+
+                    {% for m_group in y_group.months %}
+                        <div class="month-block mb-4 ps-md-3">
+                            
+                            <!-- Заголовок Месяца -->
+                            <div class="month-header d-flex align-items-center gap-2 mb-3">
+                                <div class="month-pill px-3 py-1 rounded-pill fw-bold text-dark shadow-sm border border-warning-subtle d-inline-flex align-items-center gap-2"
+                                     style="background: #fff8eb; font-size: 0.95rem;">
+                                    <i class="bi bi-calendar3 text-warning"></i>
+                                    <span>{{ m_group.month_name }}</span>
+                                    <span class="badge bg-warning text-dark rounded-pill">{{ m_group.count }}</span>
+                                </div>
+                                <div class="flex-grow-1 border-bottom border-dashed border-light-subtle"></div>
+                            </div>
+
+                            <!-- Список Дней в этом месяце -->
+                            <div class="days-list ps-md-4">
+                                {% for d_group in m_group.days %}
+                                    <div class="day-group-card mb-4 bg-white rounded-4 shadow-sm border border-light-subtle p-3 p-md-4">
+                                        
+                                        <!-- День: шапка с красивой датой -->
+                                        <div class="day-header d-flex flex-wrap align-items-center justify-content-between gap-2 pb-3 mb-3 border-bottom">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="day-circle-badge shadow-sm rounded-circle d-flex flex-column align-items-center justify-content-center text-white" 
+                                                     style="width: 44px; height: 44px; background: linear-gradient(135deg, #ff8400 0%, #ea580c 100%); line-height: 1;">
+                                                    <span style="font-size: 1.15rem; font-weight: 800;">{{ d_group.day_num }}</span>
+                                                    <span style="font-size: 0.6rem; text-transform: uppercase;">{{ m_group.month_short|slice:":3" }}</span>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark" style="font-size: 1.05rem;">{{ d_group.day_title }}</div>
+                                                    <small class="text-muted d-flex align-items-center gap-1">
+                                                        <i class="bi bi-clock"></i> {{ d_group.weekday }} • {{ d_group.count }} публ.
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <a href="{% url 'news:news_list' %}?date={{ d_group.date_key }}" 
+                                                   class="btn btn-sm btn-light border rounded-pill px-3 py-1 small text-muted" 
+                                                   title="Показать только новости за этот день">
+                                                    <i class="bi bi-filter me-1 text-warning"></i>За этот день
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <!-- Новости за этот день -->
+                                        <div class="row g-3">
+                                            {% for item in d_group.items %}
+                                                <div class="col-12 col-lg-6 news-item-col">
+                                                    <div class="card h-100 rounded-3 border border-light-subtle shadow-none hover-lift transition-all p-3" 
+                                                         style="background: #fafbfc; transition: all 0.2s ease;">
+                                                        <div class="d-flex gap-3">
+                                                            
+                                                            <!-- Превью фото -->
+                                                            <div class="flex-shrink-0">
+                                                                <a href="{{ item.get_absolute_url }}" class="d-block rounded-3 overflow-hidden shadow-sm" style="width: 90px; height: 75px;">
+                                                                    <img src="{{ item.image_url }}" alt="{{ item.title }}" 
+                                                                         style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                                                                </a>
+                                                            </div>
+
+                                                            <!-- Текст новости -->
+                                                            <div class="flex-grow-1 min-w-0">
+                                                                <div class="d-flex align-items-center justify-content-between gap-1 mb-1">
+                                                                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                                                                        <span class="badge bg-{{ item.badge_color }}-subtle text-{{ item.badge_color }} rounded-pill" style="font-size: 0.72rem;">
+                                                                            <i class="bi {{ item.badge_icon }} me-1"></i>{{ item.get_news_type_display }}
+                                                                        </span>
+                                                                        {% if item.is_auto_generated %}
+                                                                        <span class="badge bg-secondary-subtle text-secondary rounded-pill" style="font-size: 0.68rem;" title="Сформировано системой при обновлении на сайте">
+                                                                            <i class="bi bi-robot me-1"></i>Авто
+                                                                        </span>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    <span class="text-muted small fw-semibold" style="font-size: 0.78rem;">
+                                                                        <i class="bi bi-clock me-1"></i>{{ item.formatted_time }}
+                                                                    </span>
+                                                                </div>
+
+                                                                <h5 class="card-title mb-1" style="font-size: 0.98rem; font-weight: 700; line-height: 1.3;">
+                                                                    <a href="{{ item.get_absolute_url }}" class="text-dark text-decoration-none hover-orange">
+                                                                        {{ item.title }}
+                                                                    </a>
+                                                                </h5>
+
+                                                                <p class="card-text text-muted small mb-2 text-truncate-2" style="font-size: 0.85rem; line-height: 1.4;">
+                                                                    {{ item.snippet }}
+                                                                </p>
+
+                                                                <div class="d-flex align-items-center justify-content-between pt-1">
+                                                                    <a href="{{ item.get_absolute_url }}" class="small fw-semibold text-warning text-decoration-none">
+                                                                        Подробнее →
+                                                                    </a>
+                                                                    <div class="d-flex align-items-center gap-2 text-muted small" style="font-size: 0.75rem;">
+                                                                        <span><i class="bi bi-eye me-1"></i>{{ item.views_count }}</span>
+                                                                        {% if request.user.is_staff %}
+                                                                        <a href="{% url 'news:news_edit' item.slug %}" class="text-primary text-decoration-none" title="Редактировать новость">
+                                                                            <i class="bi bi-pencil-square"></i>
+                                                                        </a>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                </div>
+
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                        </div>
+                    {% endfor %}
+
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- EMPTY STATE -->
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">
+            <div class="display-1 text-muted mb-3 opacity-25">
+                <i class="bi bi-journal-x"></i>
+            </div>
+            <h3 class="fw-bold text-dark mb-2">Новостей не найдено</h3>
+            <p class="text-muted mx-auto" style="max-width: 500px;">
+                По выбранным параметрам даты или поисковому запросу ничего не найдено. Попробуйте сбросить фильтры.
+            </p>
+            <div class="mt-3">
+                <a href="{% url 'news:news_list' %}" class="btn btn-sib-orange rounded-pill px-4 py-2">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Сбросить все фильтры
+                </a>
+            </div>
+        </div>
+    {% endif %}
+
+</div>
+
+<style>
+.hover-orange:hover {
+    color: #ff8400 !important;
+}
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06) !important;
+    border-color: #cbd5e1 !important;
+}
+.text-truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+@media (min-width: 992px) {
+    .border-start-lg {
+        border-left: 1px solid #e2e8f0;
+        padding-left: 1.5rem;
+    }
+}
+</style>
+{% endblock %}

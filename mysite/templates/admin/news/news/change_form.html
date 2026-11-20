@@ -1,0 +1,131 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+/* ==========================================================================
+   Стили формы редактирования новостей ТМ «Сибсыр»
+   ========================================================================== */
+.sib-news-header {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.15);
+}
+
+.sib-news-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sib-news-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: rgba(255, 132, 0, 0.15);
+  border: 1px solid rgba(255, 132, 0, 0.4);
+  color: #ff8400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.55rem;
+  flex-shrink: 0;
+}
+
+.sib-news-header-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.sib-news-header-sub {
+  margin: 2px 0 0 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.sib-news-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.sib-news-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ff8400;
+}
+
+.sib-news-notice {
+  background: #f8fafc;
+  border-left: 4px solid #3b82f6;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 0.88rem;
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="sib-news-header">
+  <div class="sib-news-header-left">
+    <div class="sib-news-icon-badge">
+      <i class="bi bi-newspaper"></i>
+    </div>
+    <div>
+      <h2 class="sib-news-header-title">
+        {% if original %}{{ original.title }}{% else %}Создание новой публикации{% endif %}
+      </h2>
+      <p class="sib-news-header-sub">
+        {% if original %}
+          Опубликовано: {{ original.formatted_date_full }} в {{ original.formatted_time }} • {{ original.views_count }} просмотров
+        {% else %}
+          Задайте дату публикации (День, Месяц, Год) и содержание новости
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="d-flex align-items-center gap-2">
+    {% if original and original.slug %}
+    <a href="{{ original.get_absolute_url }}" target="_blank" class="sib-news-btn">
+      <i class="bi bi-box-arrow-up-right"></i> Посмотреть на сайте
+    </a>
+    {% endif %}
+    <a href="{% url 'news:news_list' %}" target="_blank" class="sib-news-btn">
+      <i class="bi bi-collection"></i> Лента новостей
+    </a>
+  </div>
+</div>
+
+{% if original %}
+<div class="sib-news-notice">
+  <i class="bi bi-info-circle-fill text-primary me-1"></i>
+  <strong>Автоматическое оповещение:</strong> В соответствии с настройками сайта, любое сохранение изменений в данной новости автоматически создаст публикацию об обновлении в общей ленте.
+</div>
+{% endif %}
+
+{{ block.super }}
+{% endblock %}

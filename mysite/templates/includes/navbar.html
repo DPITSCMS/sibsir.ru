@@ -295,12 +295,23 @@
 
                         <!-- Группа 2: Покупателям (Объединяет: Вопрос-ответ FAQ, Статьи и рецепты) -->
                         <li class="nav-item nav-menu-dropdown-hover nav-dropdown-wrap">
-                            <a class="nav-link nav-link-sib nav-dropdown-trigger d-inline-flex align-items-center gap-1 {% if '/faq' in request.path or '/articles' in request.path %}active{% endif %}" 
+                            <a class="nav-link nav-link-sib nav-dropdown-trigger d-inline-flex align-items-center gap-1 {% if '/faq' in request.path or '/articles' in request.path or '/news' in request.path %}active{% endif %}" 
                                href="{% url 'main:faq' %}">
                                 <span>Покупателям</span>
                                 <i class="bi bi-chevron-down nav-caret-icon"></i>
                             </a>
                             <ul class="dropdown-menu nav-dropdown-menu shadow-lg rounded-4 p-2 border-0 mt-1" style="min-width: 270px;">
+                                <li>
+                                    <a class="dropdown-item nav-dropdown-item rounded-3 py-2 px-3 d-flex align-items-center gap-3 {% if '/news' in request.path %}active{% endif %}" href="{% url 'news:news_list' %}">
+                                        <div class="nav-cat-icon-badge">
+                                            <i class="bi bi-newspaper text-warning"></i>
+                                        </div>
+                                        <div>
+                                            <div class="nav-dropdown-title">Новости сыроварни</div>
+                                            <div class="nav-dropdown-desc">События, новинки, хроника</div>
+                                        </div>
+                                    </a>
+                                </li>
                                 <li>
                                     <a class="dropdown-item nav-dropdown-item rounded-3 py-2 px-3 d-flex align-items-center gap-3 {% if '/faq' in request.path %}active{% endif %}" href="{% url 'main:faq' %}">
                                         <div class="nav-cat-icon-badge">

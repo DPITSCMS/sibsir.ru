@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- BREADCRUMBS -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb mb-0 py-2 px-3 bg-white rounded-pill shadow-sm border border-light-subtle d-inline-flex">
+            <li class="breadcrumb-item">
+                <a href="{% url 'main:index' %}" class="text-decoration-none text-muted">
+                    <i class="bi bi-house-door me-1"></i>Главная
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'news:news_list' %}" class="text-decoration-none text-muted">Новости</a>
+            </li>
+            <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">
+                {% if is_create %}Добавление новости{% else %}Редактирование: {{ news.title }}{% endif %}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white mb-5">
+                
+                <!-- HEADER -->
+                <div class="p-4 p-md-4 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-3 p-2 bg-warning text-dark d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; font-size: 1.4rem;">
+                                <i class="bi {% if is_create %}bi-plus-circle-fill{% else %}bi-pencil-square{% endif %}"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-0 text-white">
+                                    {% if is_create %}Создание новой публикации{% else %}Редактирование новости{% endif %}
+                                </h3>
+                                <small class="text-white-50">
+                                    {% if is_create %}Заполните поля ниже. Дата публикации определяет группировку по дню, месяцу и году.{% else %}При сохранении изменений на сайте автоматически будет опубликована новость об этом редактировании.{% endif %}
+                                </small>
+                            </div>
+                        </div>
+
+                        {% if not is_create %}
+                        <span class="badge bg-warning text-dark rounded-pill px-3 py-2">
+                            <i class="bi bi-eye me-1"></i>{{ news.views_count }} просмотров
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- FORM BODY -->
+                <div class="p-4 p-md-5">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.errors %}
+                        <div class="alert alert-danger rounded-3 mb-4">
+                            <strong><i class="bi bi-exclamation-triangle-fill me-1"></i> Пожалуйста, исправьте ошибки:</strong>
+                            <ul class="mb-0 mt-2">
+                                {% for field, errors in form.errors.items %}
+                                    {% for err in errors %}
+                                        <li>{{ field }}: {{ err }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <!-- БЛОК 1: ДАТА И ВРЕМЯ ПУБЛИКАЦИИ (КЛЮЧЕВОЙ АКЦЕНТ) -->
+                        <div class="card border border-warning-subtle rounded-4 p-4 mb-4" style="background: #fffcf6;">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                <label for="id_published_at" class="fw-bold text-dark fs-6 mb-0 d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar-heart-fill text-warning fs-5"></i>
+                                    <span>Дата и время публикации (День, Месяц, Год):</span>
+                                </label>
+                                <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+                                    Основа группировки новостей
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-3">
+                                Используйте кнопки быстрого выбора или календарь, чтобы задать или скорректировать точную дату и время:
+                            </p>
+                            
+                            {{ form.published_at }}
+                        </div>
+
+                        <!-- БЛОК 2: ОСНОВНЫЕ ПОЛЯ -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-8">
+                                <label for="id_title" class="form-label fw-bold text-dark">
+                                    Заголовок новости <span class="text-danger">*</span>
+                                </label>
+                                {{ form.title }}
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="id_news_type" class="form-label fw-bold text-dark">Категория / Тип</label>
+                                {{ form.news_type }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="id_slug" class="form-label fw-bold text-dark">Слаг (URL)</label>
+                                {{ form.slug }}
+                                <small class="text-muted">Если оставить пустым, сформируется автоматически из названия</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="id_related_url" class="form-label fw-bold text-dark">Связанный URL</label>
+                                {{ form.related_url }}
+                                <small class="text-muted">Ссылка на товар, акцию или раздел (необязательно)</small>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="id_image" class="form-label fw-bold text-dark">Изображение / Баннер новости</label>
+                                {{ form.image }}
+                            </div>
+
+                            <div class="col-12">
+                                <label for="id_snippet" class="form-label fw-bold text-dark">Краткий анонс</label>
+                                {{ form.snippet }}
+                                <small class="text-muted">Отображается в ленте новостей и сниппетах поисковиков</small>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="id_content" class="form-label fw-bold text-dark">
+                                    Полный текст новости <span class="text-danger">*</span>
+                                </label>
+                                {{ form.content }}
+                            </div>
+
+                            <div class="col-12">
+                                <div class="form-check form-switch mt-2">
+                                    {{ form.is_published }}
+                                    <label class="form-check-label fw-bold text-dark" for="id_is_published">
+                                        Опубликовано на сайте
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- БЛОК 3: SEO -->
+                        <div class="card border rounded-3 p-3 mb-4 bg-light">
+                            <div class="fw-bold text-dark mb-2">
+                                <i class="bi bi-google text-warning me-1"></i> Поисковая оптимизация (SEO, опционально)
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <label class="form-label small text-muted mb-1">SEO Title:</label>
+                                    {{ form.meta_title }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small text-muted mb-1">SEO Description:</label>
+                                    {{ form.meta_description }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small text-muted mb-1">SEO Keywords:</label>
+                                    {{ form.meta_keywords }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ACTIONS -->
+                        <div class="d-flex align-items-center justify-content-between pt-3 border-top">
+                            <a href="{% if is_create %}{% url 'news:news_list' %}{% else %}{{ news.get_absolute_url }}{% endif %}" class="btn btn-outline-secondary rounded-pill px-4">
+                                Отмена
+                            </a>
+                            <button type="submit" class="btn btn-sib-orange rounded-pill px-5 py-2 fw-bold text-white shadow-sm">
+                                <i class="bi bi-check2-circle me-1"></i> 
+                                {% if is_create %}Опубликовать новость{% else %}Сохранить изменения{% endif %}
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+{% endblock %}

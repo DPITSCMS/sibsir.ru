@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block meta_description %}{{ page_description }}{% endblock %}
+{% block meta_keywords %}{{ page_keywords }}{% endblock %}
+{% block canonical_url %}{{ canonical_url }}{% endblock %}
+
+{% block og_title %}{{ page_title }}{% endblock %}
+{% block og_description %}{{ page_description }}{% endblock %}
+{% block og_url %}{{ canonical_url }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- 1. BREADCRUMBS -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb mb-0 py-2 px-3 bg-white rounded-pill shadow-sm border border-light-subtle d-inline-flex flex-wrap">
+            <li class="breadcrumb-item">
+                <a href="{% url 'main:index' %}" class="text-decoration-none text-muted">
+                    <i class="bi bi-house-door me-1"></i>Главная
+                </a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{% url 'news:news_list' %}" class="text-decoration-none text-muted">Новости</a>
+            </li>
+            <li class="breadcrumb-item active text-dark fw-semibold text-truncate" style="max-width: 320px;" aria-current="page">
+                {{ news.title }}
+            </li>
+        </ol>
+    </nav>
+
+    <!-- 2. ARTICLE / NEWS HEADER CARD -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+        
+        <!-- HEADER TOP -->
+        <div class="p-4 p-md-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff;">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                
+                <!-- Category badge & Source -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge bg-{{ news.badge_color }} rounded-pill px-3 py-2 text-white" style="font-size: 0.8rem;">
+                        <i class="bi {{ news.badge_icon }} me-1"></i>{{ news.get_news_type_display }}
+                    </span>
+                    {% if news.is_auto_generated %}
+                    <span class="badge bg-secondary rounded-pill px-3 py-2 text-white" style="font-size: 0.8rem;">
+                        <i class="bi bi-robot me-1"></i>Автоуведомление
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- DATE BADGE: ДЕНЬ, МЕСЯЦ, ГОД, ВРЕМЯ -->
+                <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-white bg-opacity-10 border border-white border-opacity-15">
+                    <i class="bi bi-calendar3 text-warning"></i>
+                    <span class="fw-semibold text-white small">
+                        {{ news.formatted_date_full }} в {{ news.formatted_time }}
+                    </span>
+                </div>
+
+            </div>
+
+            <!-- TITLE -->
+            <h1 class="display-6 fw-bold text-white mb-3" style="line-height: 1.25;">
+                {{ news.title }}
+            </h1>
+
+            <!-- SNIPPET / LEAD -->
+            {% if news.snippet %}
+            <p class="lead text-white-50 mb-4" style="max-width: 850px; font-size: 1.15rem; line-height: 1.5;">
+                {{ news.snippet }}
+            </p>
+            {% endif %}
+
+            <!-- META INFO & ACTIONS -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-3 border-top border-white border-opacity-10 small text-white-50">
+                <div class="d-flex align-items-center gap-3">
+                    <span><i class="bi bi-eye text-warning me-1"></i> {{ news.views_count }} просмотров</span>
+                    <span><i class="bi bi-building text-info me-1"></i> ТМ «Сибсыр»</span>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    {% if request.user.is_staff %}
+                    <a href="{% url 'news:news_edit' news.slug %}" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1">
+                        <i class="bi bi-pencil-square me-1"></i> Редактировать
+                    </a>
+                    <a href="{% url 'admin:news_news_change' news.pk %}" target="_blank" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1">
+                        <i class="bi bi-shield-lock me-1"></i> В админке
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- MAIN BODY -->
+        <div class="p-4 p-md-5">
+            <div class="row g-4 g-lg-5">
+                
+                <!-- CONTENT COLUMN -->
+                <div class="col-lg-8">
+                    
+                    {% if news.image %}
+                    <div class="news-main-image-wrap mb-4 rounded-4 overflow-hidden shadow-sm" style="max-height: 480px;">
+                        <img src="{{ news.image.url }}" alt="{{ news.title }}" class="img-fluid w-100" style="object-fit: cover;">
+                    </div>
+                    {% endif %}
+
+                    <!-- Full content text -->
+                    <div class="news-full-content text-dark mb-5" style="font-size: 1.05rem; line-height: 1.8;">
+                        {{ news.content|safe }}
+                    </div>
+
+                    <!-- Related Link Button if present -->
+                    {% if news.related_url %}
+                    <div class="p-4 rounded-4 bg-light border border-warning-subtle mb-5 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <div class="fw-bold text-dark" style="font-size: 1.05rem;">
+                                <i class="bi bi-link-45deg text-warning me-1 fs-5"></i> Связанный раздел на сайте
+                            </div>
+                            <small class="text-muted">Перейдите для подробного ознакомления с материалом или товаром</small>
+                        </div>
+                        <a href="{{ news.related_url }}" class="btn btn-sib-orange rounded-pill px-4 py-2">
+                            Открыть страницу →
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- SHARE BUTTONS -->
+                    <div class="card border bg-light rounded-4 p-3 mb-4">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                            <span class="fw-bold text-dark small">
+                                <i class="bi bi-share-fill text-warning me-2"></i>Поделиться новостью:
+                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="https://vk.com/share.php?url={{ canonical_url|urlencode }}&title={{ news.title|urlencode }}" 
+                                   target="_blank" rel="noopener noreferrer" 
+                                   class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1">
+                                    <i class="bi bi-share me-1"></i>ВКонтакте
+                                </a>
+                                <a href="https://t.me/share/url?url={{ canonical_url|urlencode }}&text={{ news.title|urlencode }}" 
+                                   target="_blank" rel="noopener noreferrer" 
+                                   class="btn btn-sm btn-outline-info rounded-pill px-3 py-1">
+                                    <i class="bi bi-telegram me-1"></i>Telegram
+                                </a>
+                                <a href="https://api.whatsapp.com/send?text={{ news.title|urlencode }}%20{{ canonical_url|urlencode }}" 
+                                   target="_blank" rel="noopener noreferrer" 
+                                   class="btn btn-sm btn-outline-success rounded-pill px-3 py-1">
+                                    <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BACK LINK -->
+                    <div>
+                        <a href="{% url 'news:news_list' %}" class="btn btn-outline-secondary rounded-pill px-4 py-2">
+                            <i class="bi bi-arrow-left me-2"></i>Все новости сыроварни
+                        </a>
+                    </div>
+
+                </div>
+
+                <!-- SIDEBAR COLUMN -->
+                <div class="col-lg-4">
+                    
+                    <!-- Date badge card -->
+                    <div class="card border border-light-subtle rounded-4 p-4 shadow-sm mb-4 bg-light">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="bi bi-calendar2-week text-warning fs-4"></i>
+                            <h5 class="fw-bold text-dark mb-0">Дата публикации</h5>
+                        </div>
+                        <ul class="list-unstyled mb-0 small d-flex flex-column gap-2 text-muted">
+                            <li class="d-flex justify-content-between border-bottom pb-2">
+                                <span>День:</span>
+                                <strong class="text-dark">{{ news.day }} {{ news.month_name_genitive }}</strong>
+                            </li>
+                            <li class="d-flex justify-content-between border-bottom pb-2">
+                                <span>Месяц:</span>
+                                <strong class="text-dark">{{ news.month_name_nominative }}</strong>
+                            </li>
+                            <li class="d-flex justify-content-between border-bottom pb-2">
+                                <span>Год:</span>
+                                <strong class="text-dark">{{ news.year }} год</strong>
+                            </li>
+                            <li class="d-flex justify-content-between border-bottom pb-2">
+                                <span>Время:</span>
+                                <strong class="text-dark">{{ news.formatted_time }}</strong>
+                            </li>
+                            <li class="d-flex justify-content-between">
+                                <span>День недели:</span>
+                                <strong class="text-dark">{{ news.weekday_name }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- RELATED NEWS -->
+                    {% if related_news %}
+                    <div class="card border border-light-subtle rounded-4 p-4 shadow-sm bg-white">
+                        <h5 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                            <i class="bi bi-newspaper text-warning"></i>
+                            <span>Читайте также</span>
+                        </h5>
+                        <div class="d-flex flex-column gap-3">
+                            {% for rel in related_news %}
+                            <div class="d-flex gap-2 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                                <a href="{{ rel.get_absolute_url }}" class="flex-shrink-0 rounded-3 overflow-hidden shadow-sm" style="width: 70px; height: 55px;">
+                                    <img src="{{ rel.image_url }}" alt="{{ rel.title }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                </a>
+                                <div>
+                                    <div class="text-muted" style="font-size: 0.72rem;">
+                                        <i class="bi bi-clock me-1"></i>{{ rel.formatted_date }}
+                                    </div>
+                                    <h6 class="mb-0" style="font-size: 0.88rem; font-weight: 600; line-height: 1.3;">
+                                        <a href="{{ rel.get_absolute_url }}" class="text-dark text-decoration-none hover-orange">
+                                            {{ rel.title }}
+                                        </a>
+                                    </h6>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<style>
+.hover-orange:hover {
+    color: #ff8400 !important;
+}
+.news-full-content p {
+    margin-bottom: 1.25rem;
+}
+.news-full-content img {
+    max-width: 100%;
+    border-radius: 12px;
+    height: auto;
+    margin: 1.25rem 0;
+}
+</style>
+{% endblock %}

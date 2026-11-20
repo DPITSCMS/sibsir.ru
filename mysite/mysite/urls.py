@@ -18,6 +18,7 @@ urlpatterns = [
     path('admin-tinymce-upload/', tinymce_image_upload, name='tinymce_image_upload'),
     path('shop/', include('shop.urls')),
     path('accounts/', include('accounts.urls')),
+    path('news/', include('news.urls')),
     path('', include('main.urls')),
 ]
 

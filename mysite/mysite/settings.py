@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "shop.apps.ShopConfig",
     "articles.apps.ArticlesConfig",
     "accounts.apps.AccountsConfig",
+    "news.apps.NewsConfig",
     # Сторонние приложения
     "tinymce",
 ]
