@@ -51,7 +51,7 @@
                         {% if cat.has_discount %}
                             <span class="badge rounded-pill bg-danger text-white ms-1" style="font-size: 0.65rem;">🔥 СКИДКА</span>
                         {% endif %}
-                        <span class="badge-pill">{{ cat.products.count }}</span>
+                        <span class="badge-pill">{{ cat.num_products }}</span>
                     </button>
                 {% endfor %}
             </div>

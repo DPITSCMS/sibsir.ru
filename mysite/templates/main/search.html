@@ -255,7 +255,7 @@
                                     </div>
                                     <div>
                                         <h6 class="fw-bold text-dark mb-1">{{ cat.name }}</h6>
-                                        <span class="small text-muted">{{ cat.products.count }} товаров</span>
+                                        <span class="small text-muted">{{ cat.num_products|default:cat.products.count }} товаров</span>
                                     </div>
                                     <i class="bi bi-chevron-right ms-auto text-muted small"></i>
                                 </a>

@@ -1,4 +1,5 @@
 from django.templatetags.static import static
+from django.core.cache import cache
 from .models import SiteSettings, SocialLink
 
 
@@ -31,26 +32,38 @@ def site_settings(request):
     brand_name = settings_obj.brand_name if settings_obj else "ТМ «Сибсыр»"
     brand_short = settings_obj.brand_short_name if settings_obj else "Сибсыр"
 
-    try:
-        from shop.models import Category
-        nav_categories = list(Category.objects.filter(is_active=True).order_by('order', 'id'))
-    except Exception:
-        nav_categories = []
+    nav_categories = cache.get("sibsir_nav_categories")
+    if nav_categories is None:
+        try:
+            from shop.models import Category
+            nav_categories = list(Category.objects.filter(is_active=True).order_by('order', 'id'))
+            cache.set("sibsir_nav_categories", nav_categories, 120)
+        except Exception:
+            nav_categories = []
 
-    try:
-        social_links = list(SocialLink.objects.filter(is_active=True).order_by('order', 'id'))
-    except Exception:
-        social_links = []
+    social_links = cache.get("sibsir_social_links")
+    if social_links is None:
+        try:
+            social_links = list(SocialLink.objects.filter(is_active=True).order_by('order', 'id'))
+            cache.set("sibsir_social_links", social_links, 120)
+        except Exception:
+            social_links = []
 
-    try:
-        from .models import Page, FooterStatBanner
-        header_pages = list(Page.objects.filter(is_published=True, show_in_header=True).order_by('order', 'id'))
-        footer_pages = list(Page.objects.filter(is_published=True, show_in_footer=True).order_by('order', 'id'))
-        footer_stat_banners = list(FooterStatBanner.objects.filter(is_active=True).order_by('order', 'id'))
-    except Exception:
-        header_pages = []
-        footer_pages = []
-        footer_stat_banners = []
+    layout_pages_data = cache.get("sibsir_layout_pages_data")
+    if layout_pages_data is None:
+        try:
+            from .models import Page, FooterStatBanner
+            header_pages = list(Page.objects.filter(is_published=True, show_in_header=True).order_by('order', 'id'))
+            footer_pages = list(Page.objects.filter(is_published=True, show_in_footer=True).order_by('order', 'id'))
+            footer_stat_banners = list(FooterStatBanner.objects.filter(is_active=True).order_by('order', 'id'))
+            layout_pages_data = (header_pages, footer_pages, footer_stat_banners)
+            cache.set("sibsir_layout_pages_data", layout_pages_data, 120)
+        except Exception:
+            header_pages = []
+            footer_pages = []
+            footer_stat_banners = []
+    else:
+        header_pages, footer_pages, footer_stat_banners = layout_pages_data
 
     return {
         "site_settings": settings_obj,

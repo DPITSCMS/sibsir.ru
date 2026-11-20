@@ -102,24 +102,27 @@ class Category(models.Model):
 
     @property
     def image_url(self):
+        if hasattr(self, "_cached_image_url"):
+            return self._cached_image_url
         if self.image and hasattr(self.image, "url"):
-            return self.image.url
-        first_prod = self.products.filter(is_active=True).exclude(image="").first()
-        if first_prod and first_prod.image:
-            return first_prod.image.url
-        return static("images/hero_cheese.jpg")
+            url = self.image.url
+        else:
+            first_prod = self.products.filter(is_active=True).exclude(image="").first()
+            if first_prod and first_prod.image:
+                url = first_prod.image.url
+            else:
+                url = static("images/hero_cheese.jpg")
+        self._cached_image_url = url
+        return url
 
     def get_active_promotion(self):
         """Возвращает активную акцию для этой категории (или каталога)."""
-        from django.utils import timezone
-        now = timezone.now()
-        return self.promotions.filter(
-            is_active=True
-        ).filter(
-            models.Q(start_date__isnull=True) | models.Q(start_date__lte=now)
-        ).filter(
-            models.Q(end_date__isnull=True) | models.Q(end_date__gte=now)
-        ).first()
+        if hasattr(self, "_cached_active_promo"):
+            return self._cached_active_promo
+        promo_map = Promotion.get_active_promotions_map()
+        promo = promo_map["categories"].get(self.id)
+        self._cached_active_promo = promo
+        return promo
 
     @property
     def has_discount(self):
@@ -340,11 +343,16 @@ class Product(models.Model):
 
     @property
     def image_url(self):
+        if hasattr(self, "_cached_image_url"):
+            return self._cached_image_url
         if self.image:
-            return self.image.url
-        if self.static_fallback_image:
-            return static(self.static_fallback_image)
-        return static("images/hero_cheese.jpg")
+            url = self.image.url
+        elif self.static_fallback_image:
+            url = static(self.static_fallback_image)
+        else:
+            url = static("images/hero_cheese.jpg")
+        self._cached_image_url = url
+        return url
 
     def get_active_promotion(self):
         """
@@ -353,60 +361,50 @@ class Product(models.Model):
         2. Акция на категорию (каталог), к которой принадлежит товар.
         3. Общая акция на весь каталог продукции.
         """
-        from django.utils import timezone
-        now = timezone.now()
+        if hasattr(self, "_cached_active_promo"):
+            return self._cached_active_promo
 
+        promo_map = Promotion.get_active_promotions_map()
         # 1. Точечная акция на товар
-        if self.pk:
-            p_promo = self.promotions.filter(
-                is_active=True
-            ).filter(
-                models.Q(start_date__isnull=True) | models.Q(start_date__lte=now)
-            ).filter(
-                models.Q(end_date__isnull=True) | models.Q(end_date__gte=now)
-            ).first()
-            if p_promo:
-                return p_promo
+        promo = promo_map["products"].get(self.id)
+        # 2. Акция на категорию
+        if not promo and self.category_id:
+            promo = promo_map["categories"].get(self.category_id)
+        # 3. Акция на весь каталог
+        if not promo:
+            promo = promo_map["all"]
 
-        # 2. Акция на категорию / каталог
-        if self.category_id:
-            c_promo = self.category.promotions.filter(
-                is_active=True
-            ).filter(
-                models.Q(start_date__isnull=True) | models.Q(start_date__lte=now)
-            ).filter(
-                models.Q(end_date__isnull=True) | models.Q(end_date__gte=now)
-            ).first()
-            if c_promo:
-                return c_promo
-
-        # 3. Акция на весь каталог (all)
-        return Promotion.objects.filter(
-            applies_to="all",
-            is_active=True
-        ).filter(
-            models.Q(start_date__isnull=True) | models.Q(start_date__lte=now)
-        ).filter(
-            models.Q(end_date__isnull=True) | models.Q(end_date__gte=now)
-        ).first()
+        self._cached_active_promo = promo
+        return promo
 
     @property
     def has_discount(self):
         """Есть ли у товара скидка или активная акция."""
+        if hasattr(self, "_cached_has_discount"):
+            return self._cached_has_discount
+
+        res = False
         if self.discount_percent > 0:
-            return True
-        if self.old_price_numeric > 0 and self.price_numeric > 0 and self.old_price_numeric > self.price_numeric:
-            return True
-        promo = self.get_active_promotion()
-        if promo and (promo.discount_percent > 0 or promo.discount_amount > 0):
-            return True
-        return False
+            res = True
+        elif self.old_price_numeric > 0 and self.price_numeric > 0 and self.old_price_numeric > self.price_numeric:
+            res = True
+        else:
+            promo = self.get_active_promotion()
+            if promo and (promo.discount_percent > 0 or promo.discount_amount > 0):
+                res = True
+
+        self._cached_has_discount = res
+        return res
 
     @property
     def effective_price_numeric(self):
         """Вычисляет актуальную цену с учетом лучшей скидки (в рублях)."""
+        if hasattr(self, "_cached_effective_price_numeric"):
+            return self._cached_effective_price_numeric
+
         base_price = self.price_numeric
         if base_price <= 0:
+            self._cached_effective_price_numeric = 0
             return 0
 
         best_price = base_price
@@ -424,51 +422,81 @@ class Product(models.Model):
                 promo_price = max(0, int(base_price - promo.discount_amount))
                 best_price = min(best_price, promo_price)
 
+        self._cached_effective_price_numeric = best_price
         return best_price
 
     @property
     def effective_old_price_numeric(self):
         """Возвращает старую цену (до скидки) для перечеркивания."""
+        if hasattr(self, "_cached_effective_old_price_numeric"):
+            return self._cached_effective_old_price_numeric
+
+        res = 0
         if self.old_price_numeric > 0:
-            return self.old_price_numeric
-        if self.has_discount and self.price_numeric > self.effective_price_numeric:
-            return self.price_numeric
-        return 0
+            res = self.old_price_numeric
+        elif self.has_discount and self.price_numeric > self.effective_price_numeric:
+            res = self.price_numeric
+
+        self._cached_effective_old_price_numeric = res
+        return res
 
     @property
     def effective_discount_percent(self):
         """Вычисляет процент скидки для бейджа."""
+        if hasattr(self, "_cached_effective_discount_percent"):
+            return self._cached_effective_discount_percent
+
+        res = 0
         if self.effective_old_price_numeric > self.effective_price_numeric > 0:
             diff = self.effective_old_price_numeric - self.effective_price_numeric
-            return int(round((diff / self.effective_old_price_numeric) * 100))
-        if self.discount_percent > 0:
-            return self.discount_percent
-        promo = self.get_active_promotion()
-        if promo and promo.discount_percent > 0:
-            return promo.discount_percent
-        return 0
+            res = int(round((diff / self.effective_old_price_numeric) * 100))
+        elif self.discount_percent > 0:
+            res = self.discount_percent
+        else:
+            promo = self.get_active_promotion()
+            if promo and promo.discount_percent > 0:
+                res = promo.discount_percent
+
+        self._cached_effective_discount_percent = res
+        return res
 
     @property
     def effective_badge(self):
         """Возвращает текст бейджа: явный бейдж, скидка '-15%' или название акции."""
+        if hasattr(self, "_cached_effective_badge"):
+            return self._cached_effective_badge
+
         if self.badge:
-            return self.badge
-        pct = self.effective_discount_percent
-        if pct > 0:
-            return f"-{pct}%"
-        promo = self.get_active_promotion()
-        if promo and promo.badge_text:
-            return promo.badge_text
-        if self.has_discount:
-            return "АКЦИЯ"
-        return ""
+            res = self.badge
+        else:
+            pct = self.effective_discount_percent
+            if pct > 0:
+                res = f"-{pct}%"
+            else:
+                promo = self.get_active_promotion()
+                if promo and promo.badge_text:
+                    res = promo.badge_text
+                elif self.has_discount:
+                    res = "АКЦИЯ"
+                else:
+                    res = ""
+
+        self._cached_effective_badge = res
+        return res
 
     @property
     def effective_price_display(self):
         """Форматированное отображение актуальной цены с учетом скидки."""
+        if hasattr(self, "_cached_effective_price_display"):
+            return self._cached_effective_price_display
+
         if self.has_discount and self.effective_price_numeric > 0:
-            return f"{self.effective_price_numeric} ₽"
-        return self.price_display
+            res = f"{self.effective_price_numeric} ₽"
+        else:
+            res = self.price_display
+
+        self._cached_effective_price_display = res
+        return res
 
     @property
     def effective_wholesale_price_display(self):
@@ -759,6 +787,62 @@ class Promotion(models.Model):
         if self.end_date and self.end_date < now:
             return False
         return True
+
+    @classmethod
+    def clear_active_cache(cls):
+        from django.core.cache import cache
+        cache.delete("sibsir_active_promotions_map")
+
+    @classmethod
+    def get_active_promotions_map(cls):
+        from django.core.cache import cache
+        CACHE_KEY = "sibsir_active_promotions_map"
+        promo_map = cache.get(CACHE_KEY)
+        if promo_map is not None:
+            return promo_map
+
+        from django.utils import timezone
+        now = timezone.now()
+
+        active_qs = list(cls.objects.filter(
+            is_active=True
+        ).filter(
+            models.Q(start_date__isnull=True) | models.Q(start_date__lte=now)
+        ).filter(
+            models.Q(end_date__isnull=True) | models.Q(end_date__gte=now)
+        ).prefetch_related('categories', 'products').order_by('order', '-id'))
+
+        all_promo = None
+        cat_promos = {}
+        prod_promos = {}
+
+        for promo in active_qs:
+            if promo.applies_to == "all" and all_promo is None:
+                all_promo = promo
+            elif promo.applies_to == "categories":
+                for cat in promo.categories.all():
+                    if cat.id not in cat_promos:
+                        cat_promos[cat.id] = promo
+            elif promo.applies_to == "products":
+                for prod in promo.products.all():
+                    if prod.id not in prod_promos:
+                        prod_promos[prod.id] = promo
+
+        promo_map = {
+            "all": all_promo,
+            "categories": cat_promos,
+            "products": prod_promos,
+        }
+        cache.set(CACHE_KEY, promo_map, 120)
+        return promo_map
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        self.clear_active_cache()
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        self.clear_active_cache()
 
 
 class PromoCode(models.Model):
@@ -1322,7 +1406,7 @@ class Review(models.Model):
         super().save(*args, **kwargs)
 
 
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, m2m_changed
 from django.dispatch import receiver
 
 
@@ -1340,4 +1424,17 @@ def update_product_rating_on_review_delete(sender, instance, **kwargs):
         return
     if instance.product:
         instance.product.update_rating_stats()
+
+
+@receiver(m2m_changed, sender=Promotion.categories.through)
+@receiver(m2m_changed, sender=Promotion.products.through)
+def on_promotion_m2m_changed(sender, **kwargs):
+    Promotion.clear_active_cache()
+
+
+@receiver(post_save, sender=Category)
+@receiver(post_delete, sender=Category)
+def clear_category_cache(sender, **kwargs):
+    from django.core.cache import cache
+    cache.delete("sibsir_nav_categories")
 

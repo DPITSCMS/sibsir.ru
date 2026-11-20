@@ -1,7 +1,52 @@
+import html
+import re
 from django.db import models
 from django.conf import settings
 from django.templatetags.static import static
 from django.utils import timezone
+
+
+def extract_yandex_map_url(value: str) -> str:
+    """
+    Извлекает чистый URL для iframe виджета Яндекс Карт из переданной строки.
+    Поддерживает:
+    - Полный HTML-код <iframe> (например: <iframe src="https://yandex.ru/map-widget/v1/?..." ...></iframe>)
+    - Полный HTML-код <script> Конструктора Яндекс Карт
+    - Прямую ссылку (включая ссылки с &amp; вместо &)
+    - Ссылку в кавычках или с пробелами
+    """
+    if not value:
+        return ""
+    
+    val = value.strip()
+    
+    # 1. Поиск в теге <iframe> src="..." или src='...'
+    iframe_match = re.search(r'<iframe[^>]+src=["\']([^"\']+)["\']', val, re.IGNORECASE)
+    if iframe_match:
+        url = iframe_match.group(1).strip()
+    # 2. Поиск в теге <script> src="..."
+    elif '<script' in val.lower():
+        script_match = re.search(r'<script[^>]+src=["\']([^"\']+)["\']', val, re.IGNORECASE)
+        if script_match:
+            script_url = script_match.group(1).strip()
+            um_match = re.search(r'um=constructor(?:%3A|:)([a-zA-Z0-9_-]+)', script_url)
+            if um_match:
+                url = f"https://yandex.ru/map-widget/v1/?um=constructor%3A{um_match.group(1)}&source=constructor"
+            else:
+                url = script_url
+        else:
+            url = val
+    else:
+        # 3. Поиск URL внутри строки
+        url_match = re.search(r'(https?:)?//[^\s"\'<>]+', val)
+        if url_match:
+            url = url_match.group(0).strip()
+        else:
+            url = val.strip(' "\'<>')
+    
+    # Декодируем HTML-сущности (например, &amp; -> &)
+    url = html.unescape(url)
+    return url
 
 
 class SiteSettings(models.Model):
@@ -289,8 +334,9 @@ class SiteSettings(models.Model):
         verbose_name="Подзаголовок страницы контактов"
     )
     yandex_map_iframe_url = models.TextField(
-        default="https://yandex.ru/map-widget/v1/?ll=73.3682%2C54.9893&z=15&pt=73.3682%2C54.9893~pm2wtm",
-        verbose_name="Ссылка для iframe виджета Яндекс Карт"
+        default="https://yandex.ru/map-widget/v1/?um=constructor%3A2b63e76ef13ca74545edfe2e0f32a4c16a2bbdd048a45c16ba69b83a1f81babc&source=constructor",
+        verbose_name="Ссылка или HTML-код iframe виджета Яндекс Карт",
+        help_text="Можно вставить как прямую ссылку на виджет карты (https://yandex.ru/map-widget/...), так и полный HTML-код <iframe> из Конструктора Яндекс Карт — ссылка будет распознана автоматически."
     )
     pickup_coordinates = models.CharField(
         max_length=50,
@@ -800,8 +846,37 @@ class SiteSettings(models.Model):
 
     @classmethod
     def get_solo(cls):
+        from django.core.cache import cache
+        CACHE_KEY = "sibsir_site_settings_solo"
+        obj = cache.get(CACHE_KEY)
+        if obj is not None:
+            return obj
         obj, _ = cls.objects.get_or_create(id=1)
+        cache.set(CACHE_KEY, obj, 300)
         return obj
+
+    @property
+    def clean_yandex_map_url(self):
+        """Возвращает нормализованный URL карты для безопасной подстановки в src iframe."""
+        if not self.yandex_map_iframe_url:
+            return ""
+        return extract_yandex_map_url(self.yandex_map_iframe_url) or self.yandex_map_iframe_url
+
+    def clean(self):
+        super().clean()
+        if self.yandex_map_iframe_url:
+            cleaned = extract_yandex_map_url(self.yandex_map_iframe_url)
+            if cleaned:
+                self.yandex_map_iframe_url = cleaned
+
+    def save(self, *args, **kwargs):
+        if self.yandex_map_iframe_url:
+            cleaned = extract_yandex_map_url(self.yandex_map_iframe_url)
+            if cleaned:
+                self.yandex_map_iframe_url = cleaned
+        super().save(*args, **kwargs)
+        from django.core.cache import cache
+        cache.delete("sibsir_site_settings_solo")
 
 
 class ProductionFeature(models.Model):
@@ -1767,6 +1842,26 @@ class FooterStatBanner(models.Model):
             except Exception:
                 return None
         return None
+
+
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+
+@receiver(post_save, sender=FooterStatBanner)
+@receiver(post_delete, sender=FooterStatBanner)
+@receiver(post_save, sender=Page)
+@receiver(post_delete, sender=Page)
+def clear_layout_pages_cache(sender, **kwargs):
+    from django.core.cache import cache
+    cache.delete("sibsir_layout_pages_data")
+
+
+@receiver(post_save, sender=SocialLink)
+@receiver(post_delete, sender=SocialLink)
+def clear_social_links_cache(sender, **kwargs):
+    from django.core.cache import cache
+    cache.delete("sibsir_social_links")
 
 
 

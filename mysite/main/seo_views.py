@@ -9,6 +9,7 @@ from django.http import HttpResponse, FileResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.urls import reverse
+import re
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
@@ -190,3 +191,43 @@ def sitemap_xml_view(request):
     pretty_xml = reparsed.toprettyxml(indent="  ", encoding="utf-8")
 
     return HttpResponse(pretty_xml, content_type="application/xml; charset=utf-8")
+
+
+def yandex_verification_view(request, filename="yandex_2481be1b37f5b18c.html"):
+    """
+    Отдает файл подтверждения прав Яндекс.Вебмастер (yandex_<код>.html).
+    1. Ищет физический файл в BASE_DIR или корне проекта.
+    2. Если файла нет, генерирует стандартное содержимое по коду из URL.
+    """
+    if not filename:
+        filename = "yandex_2481be1b37f5b18c.html"
+
+    # Проверка физического файла в BASE_DIR и выше
+    candidates = [
+        Path(django_settings.BASE_DIR) / filename,
+        Path(django_settings.BASE_DIR).parent / filename,
+    ]
+    for file_path in candidates:
+        if file_path.is_file():
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                return HttpResponse(content, content_type="text/html; charset=UTF-8")
+            except Exception:
+                pass
+
+    # Генерация на лету по имени файла yandex_<hash>.html
+    match = re.match(r"^yandex_([a-zA-Z0-9]+)\.html$", filename)
+    if match:
+        code = match.group(1)
+        content = (
+            "<html>\n"
+            "    <head>\n"
+            '        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">\n'
+            "    </head>\n"
+            f"    <body>Verification: {code}</body>\n"
+            "</html>"
+        )
+        return HttpResponse(content, content_type="text/html; charset=UTF-8")
+
+    return HttpResponse("Not Found", status=404)

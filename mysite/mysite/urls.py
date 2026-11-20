@@ -2,17 +2,24 @@
 URL configuration for mysite project.
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 
 from main.views import tinymce_image_upload
-from main.seo_views import robots_txt_view, sitemap_xml_view, favicon_view
+from main.seo_views import (
+    robots_txt_view,
+    sitemap_xml_view,
+    favicon_view,
+    yandex_verification_view,
+)
 
 urlpatterns = [
     path('favicon.ico', favicon_view, name='favicon'),
     path('robots.txt', robots_txt_view, name='robots_txt'),
     path('sitemap.xml', sitemap_xml_view, name='sitemap_xml'),
+    path('yandex_2481be1b37f5b18c.html', yandex_verification_view, name='yandex_verification_file'),
+    re_path(r'^(?P<filename>yandex_[a-zA-Z0-9]+\.html)$', yandex_verification_view, name='yandex_verification_any'),
     path('admin/', admin.site.urls),
     path('tinymce/', include('tinymce.urls')),
     path('admin-tinymce-upload/', tinymce_image_upload, name='tinymce_image_upload'),

@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Prefetch
 from django.utils import timezone
 from .models import (
     SiteSettings, ProductionFeature, CallbackRequest,
@@ -130,7 +130,9 @@ def catalog_view(request):
 
     current_category = None
     if selected_cat and selected_cat != "all":
-        current_category = Category.objects.filter(slug=selected_cat, is_active=True).first()
+        current_category = next((c for c in categories if c.slug == selected_cat), None)
+        if not current_category:
+            current_category = Category.objects.filter(slug=selected_cat, is_active=True).first()
 
     if current_category:
         page_title = current_category.get_meta_title()
@@ -192,12 +194,14 @@ def categories_list_view(request):
     количеством товаров, превью ведущих позиций и прямой ссылкой в каталог.
     """
     settings = SiteSettings.get_solo()
-    categories_qs = Category.objects.filter(is_active=True).order_by("order", "name")
+    categories_qs = Category.objects.filter(is_active=True).prefetch_related(
+        Prefetch("products", queryset=Product.objects.filter(is_active=True).order_by("order", "id"))
+    ).order_by("order", "name")
 
     categories_data = []
     total_products_count = 0
     for cat in categories_qs:
-        prods = list(cat.products.filter(is_active=True).order_by("order", "id"))
+        prods = list(cat.products.all())
         p_count = len(prods)
         if p_count == 0:
             continue

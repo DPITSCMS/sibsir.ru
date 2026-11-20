@@ -9,7 +9,7 @@
                 <option value="all">Все товары ({{ products|length }})</option>
                 <option value="sale">🔥 Акции ({{ sale_products_count }})</option>
                 {% for cat in categories %}
-                    <option value="{{ cat.slug }}">{{ cat.name }} ({{ cat.products.count }})</option>
+                    <option value="{{ cat.slug }}">{{ cat.name }} ({{ cat.num_products }})</option>
                 {% endfor %}
             </select>
         </div>

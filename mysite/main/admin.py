@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -44,7 +45,7 @@ class SiteSettingsAdmin(RichTextAdminMixin, admin.ModelAdmin):
     )
     change_form_template = "admin/main/sitesettings/change_form.html"
     list_display = ("brand_short_name", "logo_preview", "favicon_preview", "captcha_status_badge", "brand_name", "phone", "hero_image_preview")
-    readonly_fields = ("logo_preview", "favicon_preview", "hero_image_preview")
+    readonly_fields = ("logo_preview", "favicon_preview", "hero_image_preview", "yandex_map_preview")
     fieldsets = (
         ("Брендинг сайта (Логотип, Фавикон и Названия)", {
             "classes": ("tab-pane-branding", "sib-settings-card"),
@@ -132,6 +133,7 @@ class SiteSettingsAdmin(RichTextAdminMixin, admin.ModelAdmin):
                 "address",
                 ("working_hours", "inn_kpp"),
                 ("pickup_coordinates", "yandex_map_iframe_url"),
+                "yandex_map_preview",
                 "pickup_instructions_truck",
                 "pickup_instructions_car",
             )
@@ -317,6 +319,30 @@ class SiteSettingsAdmin(RichTextAdminMixin, admin.ModelAdmin):
             status_label
         )
     hero_image_preview.short_description = "Вид баннера на главной"
+
+    def yandex_map_preview(self, obj):
+        url = obj.clean_yandex_map_url if obj else ""
+        if url:
+            return format_html(
+                '<div style="max-width: 650px; border-radius: 10px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.06); margin-top: 4px;">'
+                '<iframe src="{}" width="100%" height="260" frameborder="0" style="display:block; border:0;" allowfullscreen="true" title="Предпросмотр Яндекс Карты"></iframe>'
+                '</div>'
+                '<div style="margin-top: 6px; font-size: 12px; color: #64748b; display: flex; align-items: center; gap: 5px;">'
+                '<i class="bi bi-info-circle"></i> Предпросмотр виджета карты на сайте. Поддерживается вставка прямой ссылки или полного кода &lt;iframe&gt;.'
+                '</div>',
+                url
+            )
+        return format_html('<span style="color:#94a3b8; font-size:13px;">Карта не настроена</span>')
+    yandex_map_preview.short_description = "Предпросмотр карты"
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "yandex_map_iframe_url":
+            kwargs["widget"] = forms.Textarea(attrs={
+                "rows": 3,
+                "placeholder": '<iframe src="https://yandex.ru/map-widget/v1/?um=constructor%3A..." width="100%" height="400" frameborder="0"></iframe> или ссылка https://yandex.ru/map-widget/v1/...',
+                "style": "font-family: monospace; font-size: 13px; width: 100%; max-width: 800px;"
+            })
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
         if self.model.objects.exists():
