@@ -1,0 +1,86 @@
+    <!-- 1.5. LATEST NEWS CAROUSEL (12 НОВОСТЕЙ: ПО 3 НА ДЕСКТОПЕ, 1 НА МОБ/ПЛАНШЕТЕ — КАК САМЫЕ ПОПУЛЯРНЫЕ ТОВАРЫ) -->
+    <section class="mb-5" id="latest-news">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+            <div>
+                <span class="section-head-badge"><i class="bi bi-newspaper text-warning"></i> Пресс-центр</span>
+                <h2 class="section-head-title mb-1">Новости сыроварни</h2>
+                <p class="section-head-subtitle mb-0">Свежие события производства, новинки каталога, полезные статьи и хроника жизни ТМ «Сибсыр»</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="carousel-nav-arrows d-flex align-items-center gap-2 me-1">
+                    <button type="button" class="btn btn-carousel-nav" data-carousel-prev="#newsCarousel" aria-label="Предыдущая новость" title="Предыдущая">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-carousel-nav" data-carousel-next="#newsCarousel" aria-label="Следующая новость" title="Следующая">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+                <a href="{% url 'news:news_list' %}" class="btn btn-sib-outline px-3 py-2 fw-semibold">
+                    <span>Все новости ({{ total_news_count|default:"12" }})</span>
+                    <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="products-carousel-wrapper" id="newsCarousel">
+            <div class="products-carousel-viewport">
+                <div class="products-carousel-track">
+                    {% for item in latest_news %}
+                        <div class="products-carousel-slide">
+                            <div class="product-card news-carousel-card">
+                                <div class="product-badge-float bg-{{ item.badge_color|default:'warning' }} {% if item.badge_color == 'warning' %}text-dark{% else %}text-white{% endif %}" style="background-image: none;">
+                                    <i class="bi {{ item.badge_icon|default:'bi-newspaper' }} me-1"></i>{{ item.get_news_type_display }}
+                                </div>
+                                <a href="{{ item.get_absolute_url }}" class="product-img-holder text-decoration-none p-0 overflow-hidden" style="height: 220px; background: #f8fafc;">
+                                    <img src="{{ item.image_url }}" alt="{{ item.title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+                                </a>
+                                <div class="product-body">
+                                    <div class="d-flex align-items-center justify-content-between text-muted small mb-2" style="font-size: 0.78rem;">
+                                        <span class="d-inline-flex align-items-center gap-1 text-warning fw-semibold">
+                                            <i class="bi bi-calendar3"></i> {{ item.formatted_date }}
+                                        </span>
+                                        <span class="d-inline-flex align-items-center gap-1 text-muted">
+                                            <i class="bi bi-eye"></i> {{ item.views_count }}
+                                        </span>
+                                    </div>
+                                    <h3 class="product-title" title="{{ item.title }}">
+                                        <a href="{{ item.get_absolute_url }}">{{ item.title }}</a>
+                                    </h3>
+                                    
+                                    <p class="text-muted small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.45; font-size: 0.85rem;">
+                                        {{ item.snippet }}
+                                    </p>
+
+                                    <div class="product-footer pt-3 border-top d-flex align-items-center justify-content-between gap-2 mt-auto">
+                                        <a href="{{ item.get_absolute_url }}" class="btn btn-sm btn-sib-orange text-white rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-1">
+                                            <span>Подробнее</span>
+                                            <i class="bi bi-arrow-right"></i>
+                                        </a>
+                                        <div class="d-flex align-items-center gap-1">
+                                            {% if request.user.is_staff %}
+                                            <a href="{% url 'news:news_edit' slug=item.slug %}" class="btn btn-card-share" title="Редактировать новость">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-card-share" 
+                                                    onclick="openShareModal('{{ item.title|escapejs }}', '{{ item.get_absolute_url }}', '{{ item.snippet|truncatewords:15|escapejs }}')"
+                                                    title="Поделиться новостью">
+                                                <i class="bi bi-share"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="button" class="carousel-side-nav carousel-side-prev" data-carousel-prev="#newsCarousel" aria-label="Предыдущая новость" title="Предыдущая">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <button type="button" class="carousel-side-nav carousel-side-next" data-carousel-next="#newsCarousel" aria-label="Следующая новость" title="Следующая">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+            <div class="products-carousel-dots" data-carousel-dots="#newsCarousel"></div>
+        </div>
+    </section>

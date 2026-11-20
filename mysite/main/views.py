@@ -12,6 +12,7 @@ from .models import (
 from .captcha import generate_captcha, verify_captcha
 from shop.models import Category, Product, Order, Review, Promotion, PromoCode
 from articles.models import Article
+from news.models import News
 
 
 def index(request):
@@ -40,6 +41,10 @@ def index(request):
     ).filter(
         Q(valid_to__isnull=True) | Q(valid_to__gte=now)
     ).order_by("-id")[:3]
+
+    # --- 0. ПОСЛЕДНИЕ НОВОСТИ СЫРОВАРНИ (12 новостей для карусели: по 3 на десктопе, как популярные товары) ---
+    latest_news = list(News.objects.filter(is_published=True).order_by("-published_at", "-id")[:12])
+    total_news_count = News.objects.filter(is_published=True).count()
 
     # --- 1. САМЫЕ ПОПУЛЯРНЫЕ ТОВАРЫ (6 товаров для карусели: по 3 на десктопе, по 1 на планшетах и смартфонах) ---
     pop_candidates = [p for p in all_products if any(b in (p.badge or "").lower() for b in ["хит", "популярн"])]
@@ -94,6 +99,8 @@ def index(request):
         "cta_button_text": settings.cta_button_text,
         "categories": categories,
         "features": features,
+        "latest_news": latest_news,
+        "total_news_count": total_news_count,
         "popular_products": popular_products,
         "sale_products": sale_products,
         "recommended_products": recommended_products,
