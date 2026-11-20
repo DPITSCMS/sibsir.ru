@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import admin_backup_views
+from .feeds import LatestEntriesFeed, ArticlesFeed
 
 app_name = 'main'
 
@@ -30,6 +31,8 @@ urlpatterns = [
     path('company/soglasie/', views.company_page_detail_view, {'slug': 'soglasie'}, name='company_soglasie'),
     path('company/<slug:slug>/', views.company_page_detail_view, name='company_page_detail'),
     path('articles/', views.articles_list_view, name='articles'),
+    path('articles/rss/', ArticlesFeed(), name='articles_rss'),
+    path('articles/feed/', ArticlesFeed(), name='articles_feed'),
     path('articles/<slug:slug>/', views.article_detail_view, name='article_detail'),
     path('search/', views.search_view, name='search'),
     path('api/search/', views.search_api, name='search_api'),
@@ -38,6 +41,10 @@ urlpatterns = [
     path('captcha/refresh/', views.captcha_refresh, name='captcha_refresh'),
     path('api/article/<slug:slug>/', views.get_article_detail, name='article_detail_api'),
     path('article/<slug:slug>/', views.get_article_detail, name='legacy_article_detail_api'),
+    # Карта сайта (HTML) и RSS-ленты
+    path('sitemap/', views.sitemap_html_view, name='sitemap'),
+    path('rss/', LatestEntriesFeed(), name='rss'),
+    path('feed/', LatestEntriesFeed(), name='feed'),
     # Динамические контентные и посадочные страницы (SEO)
     path('pages/<slug:slug>/', views.page_detail_view, name='page_detail'),
     path('<slug:slug>/', views.page_detail_view, name='page_direct'),

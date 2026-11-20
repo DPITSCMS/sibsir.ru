@@ -13,6 +13,7 @@ from .captcha import generate_captcha, verify_captcha
 from shop.models import Category, Product, Order, Review, Promotion, PromoCode
 from articles.models import Article
 from news.models import News
+from .seo_views import sitemap_html_view
 
 
 def index(request):

@@ -39,6 +39,9 @@
                 <div class="d-flex flex-wrap align-items-center gap-3 text-white-50 small">
                     <div><i class="bi bi-collection text-warning me-1"></i> <strong>{{ total_count }}</strong> публикаций в ленте</div>
                     <div><i class="bi bi-calendar3-range text-info me-1"></i> Группировка по годам, месяцам и дням</div>
+                    <a href="{% url 'news_rss_feed' %}" target="_blank" rel="alternate" type="application/rss+xml" class="btn btn-sm btn-outline-warning text-white rounded-pill px-3 py-1">
+                        <i class="bi bi-rss-fill text-warning me-1"></i> RSS-лента
+                    </a>
                     {% if request.user.is_staff %}
                     <a href="{% url 'news:news_create' %}" class="btn btn-sm btn-sib-orange text-white rounded-pill px-3 py-1">
                         <i class="bi bi-plus-circle me-1"></i> Добавить новость

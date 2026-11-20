@@ -122,6 +122,12 @@
     <link rel="alternate icon" href="{% static 'images/favicon.ico' %}">
     {% endif %}
 
+    <!-- RSS Feeds & Sitemap -->
+    <link rel="alternate" type="application/rss+xml" title="Лента всех публикаций ТМ «{{ brand_short_name|default:'Сибсыр' }}»" href="{% url 'rss_feed' %}">
+    <link rel="alternate" type="application/rss+xml" title="Новости сыроварни «{{ brand_short_name|default:'Сибсыр' }}»" href="{% url 'news_rss_feed' %}">
+    <link rel="alternate" type="application/rss+xml" title="Статьи и база знаний о сыре «{{ brand_short_name|default:'Сибсыр' }}»" href="{% url 'articles_rss_feed' %}">
+    <link rel="sitemap" type="application/xml" title="Карта сайта XML" href="{% url 'sitemap_xml' %}">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

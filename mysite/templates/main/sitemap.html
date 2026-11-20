@@ -1,0 +1,748 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+{% block meta_description %}{{ page_description }}{% endblock %}
+{% block meta_keywords %}{{ page_keywords }}{% endblock %}
+{% block canonical_url %}{{ canonical_url }}{% endblock %}
+
+{% block og_title %}{{ page_title }}{% endblock %}
+{% block og_description %}{{ page_description }}{% endblock %}
+{% block og_url %}{{ canonical_url }}{% endblock %}
+
+{% block schema_extra %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Главная",
+      "item": "{{ site_base_url }}/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Карта сайта",
+      "item": "{{ canonical_url }}"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Карта сайта {{ brand_name }}",
+  "description": "{{ page_description }}",
+  "url": "{{ canonical_url }}"
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- 1. ХЛЕБНЫЕ КРОШКИ -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb mb-0 py-2 px-3 bg-white rounded-pill shadow-sm border border-light-subtle d-inline-flex">
+            <li class="breadcrumb-item">
+                <a href="{% url 'main:index' %}" class="text-decoration-none text-muted">
+                    <i class="bi bi-house-door me-1"></i>Главная
+                </a>
+            </li>
+            <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Карта сайта</li>
+        </ol>
+    </nav>
+
+    <!-- 2. ГЛАВНЫЙ БАННЕР КАРТЫ САЙТА -->
+    <div class="p-4 p-md-5 rounded-4 mb-4 shadow-sm" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #ffffff; position: relative; overflow: hidden;">
+        <div style="position: absolute; right: -25px; bottom: -35px; opacity: 0.05; font-size: 15rem; pointer-events: none; line-height: 1;">
+            <i class="bi bi-diagram-3-fill"></i>
+        </div>
+        <div class="row align-items-center g-4 position-relative" style="z-index: 2;">
+            <div class="col-lg-7">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background: rgba(255, 132, 0, 0.15); border: 1px solid rgba(255, 132, 0, 0.35); color: #ffaa33; font-size: 0.82rem; font-weight: 600;">
+                    <i class="bi bi-compass"></i>
+                    <span>Индексация и быстрая навигация • Официальный портал</span>
+                </div>
+                <h1 class="display-6 fw-bold text-white mb-2">Карта сайта сыроварни «{{ brand_short_name|default:'Сибсыр' }}»</h1>
+                <p class="text-white-50 mb-3" style="font-size: 1.05rem; max-width: 640px;">
+                    Полный структурированный каталог всех страниц, разделов, категорий продукции, сыров, новостей и статей. Удобный переход в любой уголок нашего сайта.
+                </p>
+                <div class="d-flex flex-wrap gap-2 pt-1">
+                    <a href="{% url 'sitemap_xml' %}" target="_blank" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-2 text-white">
+                        <i class="bi bi-filetype-xml me-1 text-warning"></i> XML Sitemap (для поисковиков)
+                    </a>
+                    <a href="{% url 'rss_feed' %}" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3 py-2">
+                        <i class="bi bi-rss-fill me-1 text-warning"></i> RSS-лента публикаций
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="bg-white p-3 p-md-4 rounded-4 shadow-lg text-dark">
+                    <label for="sitemapSearchInput" class="form-label small fw-bold text-muted mb-2 d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-search text-warning me-1"></i>Фильтр по карте сайта</span>
+                        <span class="badge bg-light text-dark border" id="sitemapFilterCount">{{ total_products }} товаров</span>
+                    </label>
+                    <div class="position-relative">
+                        <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted" style="left: 14px;"></i>
+                        <input type="text" 
+                               id="sitemapSearchInput" 
+                               class="form-control rounded-pill ps-5 py-2" 
+                               placeholder="Начните вводить название сыра, категории, новости..."
+                               autocomplete="off">
+                    </div>
+                    <div class="form-text small text-muted mt-2">
+                        Мгновенная подсветка и фильтрация элементов на странице
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. СТАТИСТИКА РАЗДЕЛОВ И БЫСТРЫЕ ЯКОРЯ -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <a href="#section-catalog" class="card h-100 text-decoration-none border-0 shadow-sm text-center p-3 sitemap-stat-card">
+                <div class="fs-3 fw-bold text-warning mb-1">{{ total_products }}</div>
+                <div class="small text-secondary fw-semibold">Товаров в каталоге</div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <a href="#section-categories" class="card h-100 text-decoration-none border-0 shadow-sm text-center p-3 sitemap-stat-card">
+                <div class="fs-3 fw-bold text-primary mb-1">{{ categories|length }}</div>
+                <div class="small text-secondary fw-semibold">Категорий продукции</div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <a href="#section-news" class="card h-100 text-decoration-none border-0 shadow-sm text-center p-3 sitemap-stat-card">
+                <div class="fs-3 fw-bold text-success mb-1">{{ news_list|length }}</div>
+                <div class="small text-secondary fw-semibold">Новостей и событий</div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <a href="#section-articles" class="card h-100 text-decoration-none border-0 shadow-sm text-center p-3 sitemap-stat-card">
+                <div class="fs-3 fw-bold text-info mb-1">{{ articles_list|length }}</div>
+                <div class="small text-secondary fw-semibold">Статей и рецептов</div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <a href="#section-pages" class="card h-100 text-decoration-none border-0 shadow-sm text-center p-3 sitemap-stat-card">
+                <div class="fs-3 fw-bold text-secondary mb-1">{{ pages_list|length|add:9 }}</div>
+                <div class="small text-secondary fw-semibold">Страниц и документов</div>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <a href="#section-feeds" class="card h-100 text-decoration-none border-0 shadow-sm text-center p-3 sitemap-stat-card">
+                <div class="fs-3 fw-bold text-danger mb-1">4</div>
+                <div class="small text-secondary fw-semibold">RSS и XML каналов</div>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4. КНОПКИ БЫСТРОГО ПЕРЕХОДА ПО РАЗДЕЛАМ -->
+    <div class="d-flex flex-wrap gap-2 mb-4 pb-2 border-bottom">
+        <a href="#section-main" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+            <i class="bi bi-grid-fill text-warning me-1"></i>Главные разделы
+        </a>
+        <a href="#section-categories" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+            <i class="bi bi-collection-fill text-primary me-1"></i>Категории
+        </a>
+        <a href="#section-catalog" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+            <i class="bi bi-boxes text-warning me-1"></i>Каталог товаров
+        </a>
+        <a href="#section-news" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+            <i class="bi bi-newspaper text-success me-1"></i>Новости сыроварни
+        </a>
+        <a href="#section-articles" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+            <i class="bi bi-journal-richtext text-info me-1"></i>Статьи и база знаний
+        </a>
+        <a href="#section-pages" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+            <i class="bi bi-file-earmark-text text-secondary me-1"></i>Документы
+        </a>
+        <a href="#section-feeds" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+            <i class="bi bi-rss-fill text-danger me-1"></i>RSS & Sitemap XML
+        </a>
+    </div>
+
+    <!-- РАЗДЕЛ 1: ОСНОВНЫЕ СТРАНИЦЫ САЙТА -->
+    <section class="sitemap-group mb-5" id="section-main">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="sitemap-section-icon bg-warning-subtle text-warning p-2 rounded-3">
+                <i class="bi bi-house-door-fill fs-5"></i>
+            </div>
+            <div>
+                <h2 class="h5 fw-bold mb-0">Основные страницы и разделы</h2>
+                <div class="text-muted small">Ключевая навигация портала сыроварни</div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:index' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-warning rounded-circle p-2">
+                            <i class="bi bi-house-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Главная страница</div>
+                            <div class="small text-muted">Визитная карточка, каталог, акции и о производстве</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:catalog' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-warning rounded-circle p-2">
+                            <i class="bi bi-boxes fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Каталог всей продукции</div>
+                            <div class="small text-muted">Полный список сыров, фильтры, сортировка и цены</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:categories' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-primary rounded-circle p-2">
+                            <i class="bi bi-collection-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Категории с фото</div>
+                            <div class="small text-muted">Витрина категорий: рассольные, мягкие, масло, напитки</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:about' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-success rounded-circle p-2">
+                            <i class="bi bi-buildings-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">О компании</div>
+                            <div class="small text-muted">История с 1999 года, технологии, сырье и стандарты ГОСТ</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:delivery' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-info rounded-circle p-2">
+                            <i class="bi bi-truck fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Доставка и оплата</div>
+                            <div class="small text-muted">Холодовая цепь +2..+4°C, самовывоз и поставки по РФ</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:reviews' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-warning rounded-circle p-2">
+                            <i class="bi bi-chat-quote-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Отзывы клиентов</div>
+                            <div class="small text-muted">Оценки розничных покупателей и оптовых партнеров</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:faq' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-secondary rounded-circle p-2">
+                            <i class="bi bi-patch-question-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Вопрос-ответ (FAQ)</div>
+                            <div class="small text-muted">Ответы на популярные вопросы о продукции и заказах</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:contacts' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-danger rounded-circle p-2">
+                            <i class="bi bi-geo-alt-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Контакты и реквизиты</div>
+                            <div class="small text-muted">Адрес завода в Омске, телефоны, email и карта проезда</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'main:search' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-primary rounded-circle p-2">
+                            <i class="bi bi-search fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Поиск по сайту</div>
+                            <div class="small text-muted">Умный поиск по всем наименованиям и характеристикам</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'accounts:profile' %}" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-warning rounded-circle p-2">
+                            <i class="bi bi-person-circle fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">Личный кабинет</div>
+                            <div class="small text-muted">История заказов, профиль и контактные данные</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <div class="col-md-6 col-lg-4 sitemap-item">
+                <a href="{% url 'accounts:register' %}?type=legal" class="sitemap-card card h-100 p-3 text-decoration-none shadow-sm">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="sitemap-item-icon bg-light text-success rounded-circle p-2">
+                            <i class="bi bi-building-check fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark sitemap-item-title">B2B Кабинет оптовика</div>
+                            <div class="small text-muted">Оптовые цены, счета, акты и договор поставки</div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- РАЗДЕЛ 2: КАТАЛОГ ПРОДУКЦИИ ПО КАТЕГОРИЯМ И ТОВАРАМ -->
+    <section class="sitemap-group mb-5" id="section-categories">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="sitemap-section-icon bg-primary-subtle text-primary p-2 rounded-3">
+                    <i class="bi bi-grid-3x3-gap-fill fs-5"></i>
+                </div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Каталог продукции по категориям</h2>
+                    <div class="text-muted small">Все активные товарные категории и карточки продуктов сыроварни</div>
+                </div>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border px-3 py-2 rounded-pill">
+                {{ categories|length }} категорий • {{ total_products }} товаров
+            </span>
+        </div>
+
+        <div class="row g-4" id="section-catalog">
+            {% for cat in categories %}
+            <div class="col-lg-6 sitemap-category-block">
+                <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between">
+                        <a href="{% url 'main:catalog' %}?cat={{ cat.slug }}" class="d-flex align-items-center gap-2 text-decoration-none text-dark fw-bold">
+                            <div class="badge bg-warning-subtle text-warning p-2 rounded-circle">
+                                <i class="bi {{ cat.icon|default:'bi-tag-fill' }}"></i>
+                            </div>
+                            <span class="fs-6 sitemap-cat-name">{{ cat.name }}</span>
+                        </a>
+                        <span class="badge bg-light text-muted border rounded-pill">
+                            {{ cat.active_products|length }} поз.
+                        </span>
+                    </div>
+                    <div class="card-body p-3">
+                        {% if cat.active_products %}
+                        <ul class="list-unstyled mb-0 sitemap-product-list">
+                            {% for prod in cat.active_products %}
+                            <li class="sitemap-product-item py-2 border-bottom border-light-subtle d-flex justify-content-between align-items-center gap-2">
+                                <a href="{{ prod.get_absolute_url }}" class="text-decoration-none text-dark sitemap-prod-link d-inline-flex align-items-center gap-2">
+                                    <i class="bi bi-dot text-warning fs-4 lh-1"></i>
+                                    <span class="sitemap-prod-title fw-medium">{{ prod.title }}</span>
+                                    {% if prod.unit_weight %}
+                                    <span class="badge bg-light text-secondary border small">{{ prod.unit_weight }}</span>
+                                    {% endif %}
+                                </a>
+                                <div class="text-end text-nowrap">
+                                    {% if prod.effective_price_display %}
+                                    <span class="small fw-bold text-warning">{{ prod.effective_price_display }}</span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <div class="text-muted small py-2">В этой категории пока нет опубликованных товаров.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- РАЗДЕЛ 3: НОВОСТИ И СОБЫТИЯ СЫРОВАРНИ -->
+    <section class="sitemap-group mb-5" id="section-news">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="sitemap-section-icon bg-success-subtle text-success p-2 rounded-3">
+                    <i class="bi bi-newspaper fs-5"></i>
+                </div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Новости и хроника сыроварни</h2>
+                    <div class="text-muted small">Обновления ассортимента, акции, события и жизнь производства</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'news_rss_feed' %}" target="_blank" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1">
+                    <i class="bi bi-rss-fill text-warning me-1"></i> RSS новостей
+                </a>
+                <a href="{% url 'news:news_list' %}" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+                    Все новости ({{ news_list|length }}) <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-3">
+            <div class="row g-2" id="sitemapNewsGrid">
+                {% for item in news_list %}
+                <div class="col-md-6 col-lg-4 sitemap-news-item">
+                    <a href="{{ item.get_absolute_url }}" class="p-2 rounded-3 text-decoration-none d-flex align-items-start gap-2 hover-bg-light">
+                        <i class="bi bi-caret-right-fill text-warning mt-1 small"></i>
+                        <div>
+                            <div class="text-dark fw-medium small sitemap-news-title">{{ item.title }}</div>
+                            <div class="text-muted small" style="font-size: 0.75rem;">
+                                <span><i class="bi bi-calendar3 me-1"></i>{{ item.formatted_date|default:item.published_at|date:"d.m.Y" }}</span>
+                                {% if item.news_type %}
+                                <span class="ms-1 badge bg-light text-secondary border">{{ item.get_news_type_display }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% empty %}
+                <div class="col-12 text-muted small p-2">Опубликованных новостей пока нет.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- РАЗДЕЛ 4: СТАТЬИ И БАЗА ЗНАНИЙ О СЫРЕ -->
+    <section class="sitemap-group mb-5" id="section-articles">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="sitemap-section-icon bg-info-subtle text-info p-2 rounded-3">
+                    <i class="bi bi-journal-richtext fs-5"></i>
+                </div>
+                <div>
+                    <h2 class="h5 fw-bold mb-0">Статьи и база знаний о сыре</h2>
+                    <div class="text-muted small">Кулинарные рецепты, советы сыроделов, гид по хранению и сочетаниям</div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'articles_rss_feed' %}" target="_blank" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1">
+                    <i class="bi bi-rss-fill text-warning me-1"></i> RSS статей
+                </a>
+                <a href="{% url 'main:articles' %}" class="btn btn-sm btn-light border rounded-pill px-3 py-1">
+                    Все статьи ({{ articles_list|length }}) <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-3">
+            <div class="row g-2" id="sitemapArticlesGrid">
+                {% for art in articles_list %}
+                <div class="col-md-6 col-lg-4 sitemap-article-item">
+                    <a href="{{ art.get_absolute_url }}" class="p-2 rounded-3 text-decoration-none d-flex align-items-start gap-2 hover-bg-light">
+                        <i class="bi bi-bookmark-fill text-info mt-1 small"></i>
+                        <div>
+                            <div class="text-dark fw-medium small sitemap-article-title">{{ art.title }}</div>
+                            <div class="text-muted small" style="font-size: 0.75rem;">
+                                <span><i class="bi bi-calendar-event me-1"></i>{{ art.date_str|default:art.created_at|date:"d.m.Y" }}</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% empty %}
+                <div class="col-12 text-muted small p-2">Статей пока нет.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- РАЗДЕЛ 5: РЕГЛАМЕНТНЫЕ СТРАНИЦЫ И ДОКУМЕНТЫ -->
+    <section class="sitemap-group mb-5" id="section-pages">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="sitemap-section-icon bg-secondary-subtle text-secondary p-2 rounded-3">
+                <i class="bi bi-file-earmark-text-fill fs-5"></i>
+            </div>
+            <div>
+                <h2 class="h5 fw-bold mb-0">Информационные разделы и регламентные документы</h2>
+                <div class="text-muted small">Политика конфиденциальности, соглашения и регламенты</div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-3">
+            <div class="row g-2">
+                <div class="col-md-6 col-lg-4 sitemap-item">
+                    <a href="{% url 'main:company_consent' %}" class="p-2 rounded-3 text-decoration-none d-flex align-items-center gap-2 hover-bg-light text-dark">
+                        <i class="bi bi-shield-check text-warning"></i>
+                        <span class="small fw-medium">Согласие на обработку персональных данных</span>
+                    </a>
+                </div>
+                <div class="col-md-6 col-lg-4 sitemap-item">
+                    <a href="{% url 'main:company_soglasie' %}" class="p-2 rounded-3 text-decoration-none d-flex align-items-center gap-2 hover-bg-light text-dark">
+                        <i class="bi bi-shield-lock text-warning"></i>
+                        <span class="small fw-medium">Пользовательское соглашение и политика данных</span>
+                    </a>
+                </div>
+                {% for page in pages_list %}
+                <div class="col-md-6 col-lg-4 sitemap-item">
+                    <a href="{{ page.get_absolute_url }}" class="p-2 rounded-3 text-decoration-none d-flex align-items-center gap-2 hover-bg-light text-dark">
+                        <i class="bi bi-file-text text-secondary"></i>
+                        <span class="small fw-medium">{{ page.get_display_title }}</span>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- РАЗДЕЛ 6: ЭКСПОРТНЫЕ КАНАЛЫ, RSS И XML КАРТА -->
+    <section class="sitemap-group mb-4" id="section-feeds">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="sitemap-section-icon bg-danger-subtle text-danger p-2 rounded-3">
+                <i class="bi bi-broadcast-pin fs-5"></i>
+            </div>
+            <div>
+                <h2 class="h5 fw-bold mb-0">Экспортные каналы, RSS-ленты и поисковые протоколы</h2>
+                <div class="text-muted small">Машиночитаемые каналы для синдикации, ридеров и поисковых систем</div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <!-- 1. XML Sitemap -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 p-3 border-0 shadow-sm rounded-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-warning-subtle text-warning p-2 rounded-3">
+                            <i class="bi bi-filetype-xml fs-5"></i>
+                        </span>
+                        <div>
+                            <div class="fw-bold text-dark">Sitemap XML</div>
+                            <div class="small text-muted">/sitemap.xml</div>
+                        </div>
+                    </div>
+                    <p class="small text-secondary mb-3 flex-grow-1">
+                        Протокол sitemaps.org 0.9 со всеми URL, датами обновления и Google/Yandex Image Sitemap.
+                    </p>
+                    <a href="{% url 'sitemap_xml' %}" target="_blank" class="btn btn-sm btn-outline-warning w-100 rounded-pill">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Открыть sitemap.xml
+                    </a>
+                </div>
+            </div>
+
+            <!-- 2. Общий RSS фид -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 p-3 border-0 shadow-sm rounded-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-danger-subtle text-danger p-2 rounded-3">
+                            <i class="bi bi-rss-fill fs-5"></i>
+                        </span>
+                        <div>
+                            <div class="fw-bold text-dark">Общая RSS-лента</div>
+                            <div class="small text-muted">/rss/ и /feed/</div>
+                        </div>
+                    </div>
+                    <p class="small text-secondary mb-3 flex-grow-1">
+                        Единый поток всех публикаций сыроварни: свежие новости, новинки продукции и полезные статьи.
+                    </p>
+                    <a href="{% url 'rss_feed' %}" target="_blank" class="btn btn-sm btn-warning text-white w-100 rounded-pill">
+                        <i class="bi bi-rss me-1"></i> Подписаться на RSS
+                    </a>
+                </div>
+            </div>
+
+            <!-- 3. RSS новостей -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 p-3 border-0 shadow-sm rounded-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-success-subtle text-success p-2 rounded-3">
+                            <i class="bi bi-newspaper fs-5"></i>
+                        </span>
+                        <div>
+                            <div class="fw-bold text-dark">RSS Новости</div>
+                            <div class="small text-muted">/rss/news/</div>
+                        </div>
+                    </div>
+                    <p class="small text-secondary mb-3 flex-grow-1">
+                        Отдельная лента новостей, промо-акций, расширения ассортимента и событий завода.
+                    </p>
+                    <a href="{% url 'news_rss_feed' %}" target="_blank" class="btn btn-sm btn-outline-success w-100 rounded-pill">
+                        <i class="bi bi-rss me-1"></i> RSS новостей
+                    </a>
+                </div>
+            </div>
+
+            <!-- 4. RSS статей -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 p-3 border-0 shadow-sm rounded-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-info-subtle text-info p-2 rounded-3">
+                            <i class="bi bi-journal-text fs-5"></i>
+                        </span>
+                        <div>
+                            <div class="fw-bold text-dark">RSS Статьи</div>
+                            <div class="small text-muted">/rss/articles/</div>
+                        </div>
+                    </div>
+                    <p class="small text-secondary mb-3 flex-grow-1">
+                        Лента базы знаний о сыре: гастрономические советы, авторские рецепты и статьи сыроделов.
+                    </p>
+                    <a href="{% url 'articles_rss_feed' %}" target="_blank" class="btn btn-sm btn-outline-info w-100 rounded-pill">
+                        <i class="bi bi-rss me-1"></i> RSS статей
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<!-- СТИЛИ И СКРИПТ ПОИСКА КАРТЫ САЙТА -->
+<style>
+.sitemap-stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 14px;
+}
+.sitemap-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08) !important;
+}
+.sitemap-card {
+    border-radius: 14px;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #eef2f6;
+}
+.sitemap-card:hover {
+    transform: translateY(-2px);
+    border-color: #ff8400;
+    box-shadow: 0 6px 16px rgba(255,132,0,0.12) !important;
+}
+.hover-bg-light:hover {
+    background-color: #f8fafc;
+}
+.sitemap-prod-link:hover .sitemap-prod-title {
+    color: #ff8400;
+}
+.sitemap-highlight {
+    background-color: #fff3cd;
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('sitemapSearchInput');
+    const filterCountBadge = document.getElementById('sitemapFilterCount');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+        
+        // 1. Поиск по товарам в категориях
+        const productItems = document.querySelectorAll('.sitemap-product-item');
+        let matchedCount = 0;
+        
+        productItems.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (!query || text.includes(query)) {
+                item.style.display = '';
+                matchedCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // 2. Скрытие пустых карточек категорий, если ни один товар не подходит и название категории не содержит запрос
+        const categoryBlocks = document.querySelectorAll('.sitemap-category-block');
+        categoryBlocks.forEach(block => {
+            const catName = (block.querySelector('.sitemap-cat-name')?.textContent || '').toLowerCase();
+            const visibleProducts = block.querySelectorAll('.sitemap-product-item:not([style*="display: none"])');
+            if (!query || catName.includes(query) || visibleProducts.length > 0) {
+                block.style.display = '';
+                if (catName.includes(query) && query) {
+                    // Если подошла категория, покажем все её товары
+                    block.querySelectorAll('.sitemap-product-item').forEach(p => p.style.display = '');
+                }
+            } else {
+                block.style.display = 'none';
+            }
+        });
+
+        // 3. Поиск по новостям
+        const newsItems = document.querySelectorAll('.sitemap-news-item');
+        newsItems.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (!query || text.includes(query)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // 4. Поиск по статьям
+        const articleItems = document.querySelectorAll('.sitemap-article-item');
+        articleItems.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (!query || text.includes(query)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // 5. Поиск по основным страницам
+        const mainItems = document.querySelectorAll('#section-main .sitemap-item');
+        mainItems.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (!query || text.includes(query)) {
+                item.style.display = '';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Обновление бейджа количества найденных
+        if (filterCountBadge) {
+            if (query) {
+                filterCountBadge.textContent = 'Найдено: ' + matchedCount;
+                filterCountBadge.className = 'badge bg-warning text-dark border';
+            } else {
+                filterCountBadge.textContent = '{{ total_products }} товаров';
+                filterCountBadge.className = 'badge bg-light text-dark border';
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

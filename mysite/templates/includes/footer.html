@@ -201,6 +201,18 @@
                                 <span class="footer-link-text">Контакты и реквизиты</span>
                             </a>
                         </li>
+                        <li>
+                            <a href="{% url 'main:sitemap' %}" class="footer-link">
+                                <span class="footer-link-icon"><i class="bi bi-diagram-3-fill text-warning"></i></span>
+                                <span class="footer-link-text">Карта сайта</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'rss_feed' %}" target="_blank" rel="alternate" type="application/rss+xml" class="footer-link">
+                                <span class="footer-link-icon"><i class="bi bi-rss-fill text-warning"></i></span>
+                                <span class="footer-link-text">RSS-лента</span>
+                            </a>
+                        </li>
                         {% for fp in footer_pages %}
                             {% if "consent" not in fp.slug and "soglasie" not in fp.slug and "policy" not in fp.slug and "privacy" not in fp.slug %}
                             <li>
@@ -302,6 +314,12 @@
                             </a>
                             {% endif %}
                         {% endfor %}
+                        <a href="{% url 'main:sitemap' %}" class="footer-legal-link">
+                            <i class="bi bi-diagram-3 text-warning me-1"></i>Карта сайта
+                        </a>
+                        <a href="{% url 'rss_feed' %}" target="_blank" rel="alternate" type="application/rss+xml" class="footer-legal-link">
+                            <i class="bi bi-rss text-warning me-1"></i>RSS
+                        </a>
                     </div>
                 </div>
 

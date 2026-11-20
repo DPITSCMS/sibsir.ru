@@ -67,7 +67,9 @@
                 <div class="d-flex flex-wrap align-items-center gap-3 text-white-50 small">
                     <div><i class="bi bi-journal-check text-warning me-1"></i> <strong>{{ total_count }}</strong> публикаций</div>
                     <div><i class="bi bi-people text-info me-1"></i> Опыт мастеров-технологов «Сибсыр»</div>
-                    <div><i class="bi bi-check2-circle text-success me-1"></i> Проверенная и практическая информация</div>
+                    <a href="{% url 'articles_rss_feed' %}" target="_blank" rel="alternate" type="application/rss+xml" class="btn btn-sm btn-outline-warning text-white rounded-pill px-3 py-1">
+                        <i class="bi bi-rss-fill text-warning me-1"></i> RSS статей
+                    </a>
                 </div>
             </div>
             <div class="col-lg-5">

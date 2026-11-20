@@ -1,14 +1,16 @@
 """
-Модуль динамической генерации robots.txt и sitemap.xml для поисковых систем (Яндекс, Google, Mail.ru).
+Модуль динамической генерации robots.txt, sitemap.xml и sitemap.html для пользователей
+и поисковых систем (Яндекс, Google, Mail.ru).
 Поддерживает стандарты протокола Sitemap 0.9 и расширение Google/Yandex Image Sitemap.
 """
 import os
 from pathlib import Path
 from django.conf import settings as django_settings
 from django.http import HttpResponse, FileResponse, HttpResponseRedirect
-from django.shortcuts import redirect
+from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.urls import reverse
+from django.db.models import Prefetch
 import re
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
@@ -16,6 +18,7 @@ from xml.dom import minidom
 from .models import SiteSettings, Page
 from shop.models import Category, Product
 from articles.models import Article
+from news.models import News
 
 
 def favicon_view(request):
@@ -47,13 +50,70 @@ def robots_txt_view(request):
     return HttpResponse(content, content_type="text/plain; charset=utf-8")
 
 
+def sitemap_html_view(request):
+    """
+    Пользовательская HTML-карта сайта (HTML Sitemap) для удобной навигации посетителей
+    и быстрой индексации поисковыми роботами.
+    Отображает структурированные ссылки на все разделы, категории, товары каталога,
+    новости, статьи, документы компании и служебные каналы экспорта (XML, RSS).
+    """
+    settings = SiteSettings.get_solo()
+    base_url = (settings.site_base_url or f"{request.scheme}://{request.get_host()}").rstrip('/')
+
+    # Категории с предварительно загруженными активными товарами
+    active_products_prefetch = Prefetch(
+        'products',
+        queryset=Product.objects.filter(is_active=True).order_by('order', 'id'),
+        to_attr='active_products'
+    )
+    categories = list(
+        Category.objects.filter(is_active=True)
+        .prefetch_related(active_products_prefetch)
+        .order_by('order', 'name')
+    )
+    total_products = sum(len(cat.active_products) for cat in categories)
+
+    # Опубликованные новости
+    news_list = list(News.objects.filter(is_published=True).order_by('-published_at', '-id'))
+
+    # Опубликованные статьи
+    articles_list = list(Article.objects.filter(is_published=True).order_by('order', '-created_at', '-id'))
+
+    # Информационные и регламентные страницы
+    pages_list = list(Page.objects.filter(is_published=True, sitemap_include=True).order_by('order', 'id'))
+
+    canonical_url = f"{base_url}/sitemap/"
+
+    context = {
+        'page_title': f"Карта сайта — Навигация по каталогу и разделам | {settings.brand_short_name or 'Сибсыр'}",
+        'page_description': (
+            f"Полная структурированная карта сайта сыроварни «{settings.brand_short_name or 'Сибсыр'}». "
+            f"Удобный каталог всех категорий и сыров, новостей, рецептов, статей и документов компании в Омске."
+        ),
+        'page_keywords': "карта сайта сибсыр, каталог сыров навигация, все страницы сайта, статьи о сыре, новости сыроварни",
+        'canonical_url': canonical_url,
+        'site_settings': settings,
+        'brand_name': settings.brand_name,
+        'brand_short_name': settings.brand_short_name,
+        'site_base_url': base_url,
+        'categories': categories,
+        'total_products': total_products,
+        'news_list': news_list,
+        'articles_list': articles_list,
+        'pages_list': pages_list,
+    }
+    return render(request, 'main/sitemap.html', context)
+
+
 def sitemap_xml_view(request):
     """
     Динамически генерирует актуальный sitemap.xml со всеми активными страницами сайта:
-    - Главная, Каталог, Категории, О компании, Доставка, Отзывы, Контакты, Статьи
+    - Главная, Каталог, Категории, О компании, Доставка, Отзывы, Контакты, Статьи, Новости, Карта сайта
     - Все активные товары каталога с фото (Google Images Sitemap)
     - Все активные категории
     - Все опубликованные статьи блога с датами и фото
+    - Все опубликованные новости сыроварни с датами и фото
+    - Все динамические страницы Page
     """
     settings = SiteSettings.get_solo()
     base_url = (settings.site_base_url or f"{request.scheme}://{request.get_host()}").rstrip('/')
@@ -106,6 +166,8 @@ def sitemap_xml_view(request):
         ("/catalog/", now_str, "daily", "0.9"),
         ("/categories/", now_str, "weekly", "0.9"),
         ("/articles/", now_str, "daily", "0.8"),
+        ("/news/", now_str, "daily", "0.9"),
+        ("/sitemap/", now_str, "weekly", "0.8"),
         ("/about/", now_str, "monthly", "0.7"),
         ("/delivery/", now_str, "monthly", "0.7"),
         ("/reviews/", now_str, "daily", "0.8"),
@@ -157,7 +219,23 @@ def sitemap_xml_view(request):
             })
         add_url(art_url, lastmod=art_date, changefreq="monthly", priority="0.7", images=art_images)
 
-    # 5. Динамические страницы контента и промо-разделы
+    # 5. Опубликованные новости сыроварни
+    news_items = News.objects.filter(is_published=True).order_by("-published_at", "-id")
+    for nw in news_items:
+        nw_url = nw.get_absolute_url()
+        nw_date = nw.updated_at.strftime("%Y-%m-%d") if nw.updated_at else (
+            nw.published_at.strftime("%Y-%m-%d") if nw.published_at else now_str
+        )
+        nw_images = []
+        if nw.image:
+            nw_images.append({
+                "loc": nw.image.url,
+                "title": nw.title,
+                "caption": nw.snippet or nw.title,
+            })
+        add_url(nw_url, lastmod=nw_date, changefreq="weekly", priority="0.8", images=nw_images)
+
+    # 6. Динамические страницы контента и промо-разделы
     pages = Page.objects.filter(is_published=True, sitemap_include=True).order_by("order", "id")
     for pg in pages:
         if "noindex" in pg.meta_robots_index:
