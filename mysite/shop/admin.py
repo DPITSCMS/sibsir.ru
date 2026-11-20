@@ -89,7 +89,7 @@ class CategoryAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
         if n_cnt:
             parts.append(f'<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{n_cnt} нов.</span>')
         if parts:
-            return format_html(" ".join(parts))
+            return mark_safe(" ".join(parts))
         return mark_safe('<span style="color: #94a3b8; font-size: 11px;">—</span>')
     attached_materials_info.short_description = "Статьи / Новости"
 
@@ -424,7 +424,7 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
         if n_cnt:
             parts.append(f'<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{n_cnt} нов.</span>')
         if parts:
-            return format_html(" ".join(parts))
+            return mark_safe(" ".join(parts))
         return mark_safe('<span style="color: #94a3b8; font-size: 11px;">—</span>')
     attached_materials_info.short_description = "Материалы"
 

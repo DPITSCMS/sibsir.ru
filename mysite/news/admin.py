@@ -115,7 +115,7 @@ class NewsAdmin(admin.ModelAdmin):
         if c_cnt:
             parts.append(f'<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px;">{c_cnt} кат.</span>')
         if parts:
-            return format_html(" ".join(parts))
+            return mark_safe(" ".join(parts))
         return "—"
 
     @admin.display(description="Источник")

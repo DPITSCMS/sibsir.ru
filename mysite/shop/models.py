@@ -95,7 +95,13 @@ class Category(models.Model):
             return self.meta_keywords
         return f"{self.name.lower()}, сыры омск, купить сыр оптом, сибсыр, молочная продукция омск"
 
+    def _clear_cached_properties(self):
+        for attr in ("_cached_image_url", "_cached_active_promo"):
+            if hasattr(self, attr):
+                delattr(self, attr)
+
     def save(self, *args, **kwargs):
+        self._clear_cached_properties()
         if not self.meta_title or not self.meta_description or not self.meta_keywords:
             self.generate_seo(overwrite=False)
         super().save(*args, **kwargs)
@@ -141,6 +147,18 @@ class Category(models.Model):
         return News.objects.filter(is_published=True).filter(
             models.Q(related_categories=self) | models.Q(related_products__category=self)
         ).distinct().order_by("-published_at", "-id")
+
+    def get_absolute_url(self):
+        from django.urls import reverse
+        if self.slug:
+            return f"{reverse('main:catalog')}?cat={self.slug}"
+        return reverse("main:catalog")
+
+    def get_canonical_url(self, request=None):
+        url = self.get_absolute_url()
+        if request:
+            return request.build_absolute_uri(url)
+        return url
 
 
 class Product(models.Model):
@@ -641,8 +659,23 @@ class Product(models.Model):
             qs = qs.filter(related_products=self).distinct()
         return qs.order_by("-published_at", "-id")
 
+    def _clear_cached_properties(self):
+        for attr in (
+            "_cached_has_discount",
+            "_cached_effective_price_numeric",
+            "_cached_effective_old_price_numeric",
+            "_cached_effective_discount_percent",
+            "_cached_effective_badge",
+            "_cached_effective_price_display",
+            "_cached_image_url",
+            "_cached_active_promo",
+        ):
+            if hasattr(self, attr):
+                delattr(self, attr)
+
     def save(self, *args, **kwargs):
         import re
+        self._clear_cached_properties()
 
         update_fields = kwargs.get("update_fields")
         should_sync_prices = (
@@ -993,7 +1026,12 @@ class PromoCode(models.Model):
         val = f"{int(self.discount_value)}%" if self.discount_type == 'percent' else f"{self.discount_value} ₽"
         return f"{self.code} — {self.title} ({val})"
 
-    def check_validity(self):
+    def is_currently_active(self):
+        """Проверяет, активен ли промокод в текущий момент времени."""
+        valid, _ = self.check_validity()
+        return valid
+
+    def check_validity(self, cart_total=None):
         """Проверяет общие условия валидности промокода."""
         if not self.is_active:
             return False, "Данный промокод деактивирован."
@@ -1006,6 +1044,8 @@ class PromoCode(models.Model):
             return False, "Срок действия промокода истек."
         if self.usage_limit > 0 and self.times_used >= self.usage_limit:
             return False, "Лимит использований данного промокода исчерпан."
+        if cart_total is not None and self.min_order_amount > 0 and cart_total < self.min_order_amount:
+            return False, f"Минимальная сумма заказа для промокода: {int(self.min_order_amount)} ₽."
             
         return True, ""
 
@@ -1433,6 +1473,11 @@ class Review(models.Model):
     def __str__(self):
         target = f" о «{self.product.title}»" if self.product else (f" ({self.product_mention})" if self.product_mention else "")
         return f"Отзыв от {self.author_name}{target} ({self.rating}★)"
+
+    def get_rating_stars(self):
+        """Возвращает строку звездочек рейтинга (например, ★★★★★)."""
+        r = max(1, min(5, self.rating or 5))
+        return "★" * r + "☆" * (5 - r)
 
     def save(self, *args, **kwargs):
         if self.product and not self.product_mention:

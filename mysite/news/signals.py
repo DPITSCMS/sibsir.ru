@@ -95,8 +95,9 @@ try:
                     related_url=instance.get_absolute_url(),
                     published_at=timezone.now(),
                 )
-                if instance.image:
-                    news.image = instance.image
+                promo_img = getattr(instance, "banner_image", getattr(instance, "image", None))
+                if promo_img:
+                    news.image = promo_img
                 news.save()
                 news.related_products.add(instance)
                 if instance.category_id:
@@ -159,8 +160,9 @@ try:
                     related_url=url,
                     published_at=timezone.now(),
                 )
-                if instance.image:
-                    news.image = instance.image
+                promo_img = getattr(instance, "banner_image", getattr(instance, "image", None))
+                if promo_img:
+                    news.image = promo_img
                 news.save()
                 news.related_categories.add(instance)
             else:
@@ -199,7 +201,7 @@ try:
         with SignalGuard():
             if created:
                 title = f"Новая выгодная акция: {instance.title}"
-                snippet = instance.subtitle or f"Стартовала новая акция для покупателей сыроварни: «{instance.title}»."
+                snippet = getattr(instance, "subtitle", None) or getattr(instance, "description", None) or f"Стартовала новая акция для покупателей сыроварни: «{instance.title}»."
                 desc = f"<p>{instance.description}</p>" if instance.description else ""
                 content = (
                     f"<p>Для всех клиентов сыроварни «Сибсыр» действует специальное предложение: "
@@ -219,8 +221,9 @@ try:
                     related_url="/catalog/",
                     published_at=timezone.now(),
                 )
-                if instance.image:
-                    news.image = instance.image
+                promo_img = getattr(instance, "banner_image", getattr(instance, "image", None))
+                if promo_img:
+                    news.image = promo_img
                 news.save()
             else:
                 title = f"Обновлены условия акции: {instance.title}"
@@ -276,8 +279,9 @@ try:
                     related_url=instance.get_absolute_url(),
                     published_at=timezone.now(),
                 )
-                if instance.image:
-                    news.image = instance.image
+                promo_img = getattr(instance, "banner_image", getattr(instance, "image", None))
+                if promo_img:
+                    news.image = promo_img
                 news.save()
             else:
                 title = f"Обновлена статья: {instance.title}"
@@ -312,7 +316,8 @@ try:
         if kwargs.get("raw", False) or _is_in_signal():
             return
 
-        if created and instance.is_active:
+        is_approved = getattr(instance, "is_approved", getattr(instance, "is_active", True))
+        if created and is_approved:
             with SignalGuard():
                 title = f"Новый отзыв о продукции «Сибсыр»"
                 snippet = f"Покупатель {instance.author_name} оставил отзыв с оценкой {instance.rating}★."

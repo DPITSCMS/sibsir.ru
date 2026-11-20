@@ -50,8 +50,8 @@ def order_document_by_id(request, order_id, doc_type="receipt"):
     provided_token = request.GET.get("token")
 
     if not request.user.is_staff and provided_token != order.order_token:
-        # Для удобства розничных покупателей разрешаем просмотр чека своего заказа
-        pass
+        if not (request.user.is_authenticated and order.user_id == request.user.id):
+            return HttpResponseForbidden("Доступ к документу ограничен. Укажите корректный токен заказа.")
 
     return render_order_document(request, order, doc_type, token=provided_token or order.order_token)
 
