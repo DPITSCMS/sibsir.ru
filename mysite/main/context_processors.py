@@ -65,6 +65,17 @@ def site_settings(request):
     else:
         header_pages, footer_pages, footer_stat_banners = layout_pages_data
 
+    footer_payment_methods = cache.get("sibsir_footer_payments")
+    if footer_payment_methods is None:
+        try:
+            from .models import PaymentMethod
+            footer_payment_methods = list(
+                PaymentMethod.objects.filter(is_active=True, show_in_footer=True).order_by('order', 'id')
+            )
+            cache.set("sibsir_footer_payments", footer_payment_methods, 120)
+        except Exception:
+            footer_payment_methods = []
+
     return {
         "site_settings": settings_obj,
         "site_base_url": site_base_url,
@@ -77,4 +88,5 @@ def site_settings(request):
         "header_pages": header_pages,
         "footer_pages": footer_pages,
         "footer_stat_banners": footer_stat_banners,
+        "footer_payment_methods": footer_payment_methods,
     }

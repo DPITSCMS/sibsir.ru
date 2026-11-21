@@ -2383,6 +2383,17 @@ body {
     max-height: 15px;
 }
 
+.footer-pay-card-banner {
+    height: auto;
+    min-height: 28px;
+    padding: 2px 8px;
+}
+
+.footer-pay-card-banner img {
+    max-height: 26px;
+    width: auto;
+}
+
 .footer-payments-chips {
     display: flex;
     align-items: center;

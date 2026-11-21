@@ -410,13 +410,232 @@ class DeliveryMethodAdmin(RichTextAdminMixin, admin.ModelAdmin):
 
 
 @admin.register(PaymentMethod)
-class PaymentMethodAdmin(RichTextAdminMixin, admin.ModelAdmin):
+class PaymentMethodAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
     rich_text_fields = ("description", "details")
-    list_display = ("order", "title", "note", "icon", "is_active")
-    list_display_links = ("title",)
-    list_editable = ("order", "is_active")
-    list_filter = ("is_active",)
-    search_fields = ("title", "description", "details", "note")
+    list_display = (
+        "order",
+        "preview_badge",
+        "title",
+        "code_badge",
+        "footer_display_type_badge",
+        "footer_status",
+        "delivery_status",
+        "is_active_badge",
+    )
+    list_display_links = ("title", "preview_badge")
+    list_editable = ("order",)
+    list_filter = (
+        "is_active",
+        "show_in_footer",
+        "show_on_delivery_page",
+        "code",
+        "footer_display_type",
+    )
+    search_fields = ("title", "description", "details", "note", "footer_badge_text")
+    readonly_fields = ("preview_detail",)
+
+    fieldsets = (
+        ("Основная информация", {
+            "fields": (
+                ("title", "is_active"),
+                ("code", "order"),
+            )
+        }),
+        ("Баннер и оформление в подвале", {
+            "fields": (
+                "image",
+                "preview_detail",
+                ("footer_display_type", "footer_badge_text"),
+                "icon",
+            ),
+            "description": "Загрузите файл баннера/логотипа или выберите встроенный векторный пресет (МИР, СБП, Visa, Mastercard, B2B, Наличные). В подвале карточки оформляются как белые плашки, а чипы — как компактные бейджи."
+        }),
+        ("Видимость на сайте и ссылка", {
+            "fields": (
+                ("show_in_footer", "show_on_delivery_page"),
+                "url",
+            ),
+            "description": "Управляйте тем, где именно отображается этот способ оплаты: в подвале сайта и/или на странице «Доставка и оплата»."
+        }),
+        ("Описание и условия (для страницы «Доставка и оплата»)", {
+            "fields": (
+                "description",
+                "details",
+                "note",
+            ),
+            "classes": ("collapse",),
+            "description": "Подробный текст, список условий с галочками и сервисная плашка для страницы доставки."
+        }),
+    )
+
+    actions = [
+        "make_active",
+        "make_inactive",
+        "enable_in_footer",
+        "disable_in_footer",
+        "enable_on_delivery",
+        "disable_on_delivery",
+    ]
+
+    def make_active(self, request, queryset):
+        count = queryset.update(is_active=True)
+        self.message_user(request, f"Активировано способов оплаты: {count}")
+    make_active.short_description = "Включить выбранные (сделать активными / работают)"
+
+    def make_inactive(self, request, queryset):
+        count = queryset.update(is_active=False)
+        self.message_user(request, f"Деактивировано способов оплаты: {count}")
+    make_inactive.short_description = "Отключить выбранные (временно не работают)"
+
+    def enable_in_footer(self, request, queryset):
+        count = queryset.update(show_in_footer=True)
+        self.message_user(request, f"Включено отображение в подвале: {count}")
+    enable_in_footer.short_description = "Показывать в подвале сайта"
+
+    def disable_in_footer(self, request, queryset):
+        count = queryset.update(show_in_footer=False)
+        self.message_user(request, f"Исключено из подвала сайта: {count}")
+    disable_in_footer.short_description = "Скрыть из подвала сайта"
+
+    def enable_on_delivery(self, request, queryset):
+        count = queryset.update(show_on_delivery_page=True)
+        self.message_user(request, f"Включено отображение на странице доставки: {count}")
+    enable_on_delivery.short_description = "Показывать на странице доставки"
+
+    def disable_on_delivery(self, request, queryset):
+        count = queryset.update(show_on_delivery_page=False)
+        self.message_user(request, f"Скрыто со страницы доставки: {count}")
+    disable_on_delivery.short_description = "Скрыть со страницы доставки"
+
+    def preview_badge(self, obj):
+        if obj.image:
+            return format_html(
+                '<div style="min-width: 50px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">'
+                '<img src="{}" alt="{}" style="max-height: 22px; max-width: 70px; object-fit: contain; display: block;" />'
+                '</div>',
+                obj.image.url, obj.title
+            )
+        
+        presets = {
+            "mir": '<span style="font-weight: 800; font-size: 13px; color: #005B9C; letter-spacing: 0.5px;">МИ<span style="color: #40B34E;">Р</span></span>',
+            "sbp": '<span style="font-weight: 800; font-size: 13px; color: #0077C8;"><span style="color:#F8A01B;">с</span><span style="color:#0077C8;">б</span><span style="color:#D82264;">п</span></span>',
+            "visa": '<span style="font-weight: 900; font-size: 14px; font-style: italic; color: #1A1F71; letter-spacing: 1px;">VISA</span>',
+            "mastercard": '<span style="display: inline-flex; align-items: center;"><span style="width: 14px; height: 14px; border-radius: 50%; background: #EB001B; display: inline-block;"></span><span style="width: 14px; height: 14px; border-radius: 50%; background: #F79E1B; display: inline-block; margin-left: -6px; opacity: 0.9;"></span></span>',
+            "b2b": '<span style="font-size: 11px; font-weight: 700; color: #0369a1;"><i class="bi bi-building-check me-1"></i>Счет с НДС</span>',
+            "cash": '<span style="font-size: 11px; font-weight: 700; color: #15803d;"><i class="bi bi-cash-stack me-1"></i>Наличные</span>',
+            "card": '<span style="font-size: 11px; font-weight: 700; color: #475569;"><i class="bi bi-credit-card me-1"></i>Карта</span>',
+        }
+        
+        content = presets.get(obj.code)
+        if content:
+            return format_html(
+                '<div style="min-width: 50px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">'
+                '{}'
+                '</div>',
+                mark_safe(content)
+            )
+
+        return format_html(
+            '<div style="min-width: 32px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 6px; padding: 2px 6px; color: #64748b;">'
+            '<i class="bi {}" style="font-size: 14px;"></i>'
+            '</div>',
+            obj.icon or 'bi-credit-card'
+        )
+    preview_badge.short_description = "Баннер / Превью"
+
+    def code_badge(self, obj):
+        colors = {
+            "mir": ("#ecfdf5", "#047857", "МИР"),
+            "sbp": ("#eff6ff", "#1d4ed8", "СБП"),
+            "visa": ("#f0fdf4", "#15803d", "Visa"),
+            "mastercard": ("#fff7ed", "#c2410c", "Mastercard"),
+            "b2b": ("#f0f9ff", "#0369a1", "B2B (Счет)"),
+            "cash": ("#fefce8", "#a16207", "Наличные"),
+            "card": ("#f8fafc", "#334155", "Карта"),
+            "custom": ("#f1f5f9", "#475569", "Пользовательский"),
+        }
+        bg, color, text = colors.get(obj.code, ("#f1f5f9", "#475569", obj.get_code_display()))
+        return format_html(
+            '<span style="background: {}; color: {}; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">{}</span>',
+            bg, color, text
+        )
+    code_badge.short_description = "Тип"
+
+    def footer_display_type_badge(self, obj):
+        types = {
+            "CARD": ("#ffffff", "#0f172a", "Плашка-карточка"),
+            "CHIP": ("#f1f5f9", "#2563eb", "Текстовый чип"),
+            "BANNER": ("#fef3c7", "#92400e", "Графический баннер"),
+        }
+        bg, color, text = types.get(obj.footer_display_type, ("#f1f5f9", "#475569", obj.get_footer_display_type_display()))
+        return format_html(
+            '<span style="background: {}; color: {}; border: 1px solid #cbd5e1; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600;">{}</span>',
+            bg, color, text
+        )
+    footer_display_type_badge.short_description = "Вид в футере"
+
+    def footer_status(self, obj):
+        if obj.show_in_footer:
+            return mark_safe('<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">✓ В подвале</span>')
+        return mark_safe('<span style="background: #f1f5f9; color: #94a3b8; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">— Скрыт</span>')
+    footer_status.short_description = "В подвале"
+
+    def delivery_status(self, obj):
+        if obj.show_on_delivery_page:
+            return mark_safe('<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">✓ На доставке</span>')
+        return mark_safe('<span style="background: #f1f5f9; color: #94a3b8; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500;">— Скрыт</span>')
+    delivery_status.short_description = "На странице доставки"
+
+    def is_active_badge(self, obj):
+        if obj.is_active:
+            return mark_safe('<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700;">● Работает</span>')
+        return mark_safe('<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700;">✕ Отключен</span>')
+    is_active_badge.short_description = "Статус"
+
+    def preview_detail(self, obj):
+        if not obj or not obj.pk:
+            return mark_safe('<span style="color: #94a3b8; font-size: 12px;">Сохраните объект для предпросмотра</span>')
+        
+        preview_html = ""
+        if obj.image:
+            preview_html = f'<img src="{obj.image.url}" alt="{obj.title}" style="max-height: 40px; max-width: 140px; object-fit: contain;" />'
+        elif obj.code == "mir":
+            preview_html = '<span style="font-weight: 800; font-size: 18px; color: #005B9C; letter-spacing: 0.5px;">МИ<span style="color: #40B34E;">Р</span></span>'
+        elif obj.code == "sbp":
+            preview_html = '<span style="font-weight: 800; font-size: 18px; color: #0077C8;"><span style="color:#F8A01B;">с</span><span style="color:#0077C8;">б</span><span style="color:#D82264;">п</span></span>'
+        elif obj.code == "visa":
+            preview_html = '<span style="font-weight: 900; font-size: 20px; font-style: italic; color: #1A1F71; letter-spacing: 1px;">VISA</span>'
+        elif obj.code == "mastercard":
+            preview_html = '<span style="display: inline-flex; align-items: center;"><span style="width: 22px; height: 22px; border-radius: 50%; background: #EB001B; display: inline-block;"></span><span style="width: 22px; height: 22px; border-radius: 50%; background: #F79E1B; display: inline-block; margin-left: -9px; opacity: 0.9;"></span></span>'
+        elif obj.code == "b2b":
+            preview_html = f'<span style="font-size: 13px; font-weight: 700; color: #0369a1;"><i class="bi bi-building-check me-1"></i>{obj.footer_badge_text or "Безнал с НДС"}</span>'
+        elif obj.code == "cash":
+            preview_html = f'<span style="font-size: 13px; font-weight: 700; color: #15803d;"><i class="bi bi-cash-stack me-1"></i>{obj.footer_badge_text or "Наличные"}</span>'
+        else:
+            preview_html = f'<span style="font-size: 13px; font-weight: 600; color: #334155;"><i class="bi {obj.icon} me-1"></i>{obj.footer_badge_text or obj.title}</span>'
+
+        return format_html(
+            '<div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">'
+            '  <div>'
+            '    <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">На темном фоне подвала:</div>'
+            '    <div style="background: #0b1329; padding: 10px 16px; border-radius: 8px; display: inline-flex; align-items: center; border: 1px solid rgba(255,255,255,0.1);">'
+            '      <div style="background: #ffffff; border-radius: 6px; padding: 4px 10px; display: inline-flex; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">'
+            '        {}'
+            '      </div>'
+            '    </div>'
+            '  </div>'
+            '  <div>'
+            '    <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">На светлом фоне страницы доставки:</div>'
+            '    <div style="background: #f8fafc; padding: 10px 16px; border-radius: 8px; display: inline-flex; align-items: center; border: 1px solid #e2e8f0;">'
+            '      <div style="background: #ffffff; border-radius: 6px; padding: 4px 10px; display: inline-flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #cbd5e1;">'
+            '        {}'
+            '      </div>'
+            '    </div>'
+            '  </div>'
+            '</div>',
+            mark_safe(preview_html), mark_safe(preview_html)
+        )
+    preview_detail.short_description = "Предпросмотр баннера / плашки"
 
 
 @admin.register(DeliveryFaq)

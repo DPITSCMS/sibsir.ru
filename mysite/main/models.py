@@ -996,17 +996,95 @@ class DeliveryMethod(models.Model):
 
 
 class PaymentMethod(models.Model):
+    CODE_MIR = "mir"
+    CODE_SBP = "sbp"
+    CODE_VISA = "visa"
+    CODE_MASTERCARD = "mastercard"
+    CODE_B2B = "b2b"
+    CODE_CASH = "cash"
+    CODE_CARD = "card"
+    CODE_CUSTOM = "custom"
+
+    CODE_CHOICES = [
+        (CODE_MIR, "МИР (векторный официальный логотип)"),
+        (CODE_SBP, "СБП — Система быстрых платежей (логотип)"),
+        (CODE_VISA, "Visa (векторный логотип)"),
+        (CODE_MASTERCARD, "Mastercard (векторный логотип)"),
+        (CODE_B2B, "Безналичный расчет B2B (счет с НДС)"),
+        (CODE_CASH, "Наличный расчет (кассовый чек)"),
+        (CODE_CARD, "Банковская карта (общая иконка карт)"),
+        (CODE_CUSTOM, "Пользовательский (по загруженному баннеру / иконке)"),
+    ]
+
+    DISPLAY_CARD = "CARD"
+    DISPLAY_CHIP = "CHIP"
+    DISPLAY_BANNER = "BANNER"
+
+    DISPLAY_TYPE_CHOICES = [
+        (DISPLAY_CARD, "Карточка с логотипом (белая плашка)"),
+        (DISPLAY_CHIP, "Текстовый бейдж с иконкой"),
+        (DISPLAY_BANNER, "Графический баннер (по размеру изображения)"),
+    ]
+
     title = models.CharField(max_length=150, verbose_name="Название способа оплаты")
-    description = models.TextField(verbose_name="Краткое описание")
+    code = models.CharField(
+        max_length=30,
+        choices=CODE_CHOICES,
+        default=CODE_CUSTOM,
+        blank=True,
+        verbose_name="Тип / Векторный пресет",
+        help_text="Выберите платежную систему для автоматического отображения фирменного логотипа (если баннер-файл не загружен)."
+    )
+    image = models.ImageField(
+        upload_to="payment_methods/",
+        blank=True,
+        null=True,
+        verbose_name="Баннер / Логотип (файл)",
+        help_text="Загрузите графический баннер или логотип (PNG, SVG, WebP, JPG). Имеет наивысший приоритет над векторным пресетом."
+    )
+    description = models.TextField(verbose_name="Краткое описание", blank=True, help_text="Отображается на странице «Доставка и оплата»")
     details = models.TextField(
         blank=True,
         verbose_name="Условия и особенности (каждый пункт с новой строки)",
         help_text="Каждая строчка будет отображаться отдельным пунктом с галочкой."
     )
-    note = models.CharField(max_length=150, blank=True, verbose_name="Нижняя плашка / примечание", help_text="Например: Р/с в ПАО Сбербанк г. Омск")
-    icon = models.CharField(max_length=60, default="bi-credit-card", verbose_name="Иконка Bootstrap")
+    note = models.CharField(max_length=150, blank=True, verbose_name="Нижняя плашка / примечание", help_text="Например: Р/с в ПАО Сбербанк г. Омск • Работаем с НДС 10% и 20%")
+    icon = models.CharField(max_length=60, default="bi-credit-card", verbose_name="Иконка Bootstrap", help_text="Используется для текстовых бейджей и на странице доставки (например: bi-credit-card, bi-qr-code, bi-building-check, bi-cash-stack)")
+    url = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Ссылка для перехода",
+        help_text="Куда ведет клик по способу оплаты (оставьте пустым для автоперехода в раздел оплаты на странице доставки)"
+    )
+    footer_display_type = models.CharField(
+        max_length=20,
+        choices=DISPLAY_TYPE_CHOICES,
+        default=DISPLAY_CARD,
+        verbose_name="Вид в подвале",
+        help_text="Карточка с логотипом (белая плашка), текстовый бейдж с иконкой или полноразмерный баннер"
+    )
+    footer_badge_text = models.CharField(
+        max_length=80,
+        blank=True,
+        verbose_name="Текст бейджа в подвале",
+        help_text="Короткая надпись для текстового бейджа (например: «Безнал с НДС», «Наличные»). Если пусто, используется название."
+    )
+    show_in_footer = models.BooleanField(
+        default=True,
+        verbose_name="Отображать в подвале",
+        help_text="Показывать в блоке «Мы принимаем» в футере сайта"
+    )
+    show_on_delivery_page = models.BooleanField(
+        default=True,
+        verbose_name="Отображать на странице доставки",
+        help_text="Показывать в основном блоке на странице «Доставка и оплата»"
+    )
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок")
-    is_active = models.BooleanField(default=True, verbose_name="Активно")
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Работает / Активен",
+        help_text="Снимите галочку, если этот способ оплаты временно отключен или не работает"
+    )
 
     class Meta:
         verbose_name = "Способ оплаты"
@@ -1021,6 +1099,20 @@ class PaymentMethod(models.Model):
         if not self.details:
             return []
         return [line.strip() for line in self.details.splitlines() if line.strip()]
+
+    def get_url(self):
+        if self.url:
+            return self.url
+        try:
+            from django.urls import reverse
+            return reverse("main:delivery") + "#payment"
+        except Exception:
+            return "/delivery/#payment"
+
+    def get_footer_title(self):
+        if self.footer_badge_text:
+            return self.footer_badge_text
+        return self.title
 
 
 class DeliveryFaq(models.Model):
@@ -1878,6 +1970,14 @@ def clear_layout_pages_cache(sender, **kwargs):
 def clear_social_links_cache(sender, **kwargs):
     from django.core.cache import cache
     cache.delete("sibsir_social_links")
+
+
+@receiver(post_save, sender=PaymentMethod)
+@receiver(post_delete, sender=PaymentMethod)
+def clear_payment_methods_cache(sender, **kwargs):
+    from django.core.cache import cache
+    cache.delete("sibsir_footer_payments")
+    cache.delete("sibsir_delivery_payments")
 
 
 

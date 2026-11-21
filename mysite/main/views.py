@@ -977,7 +977,7 @@ def delivery_view(request):
     settings = SiteSettings.get_solo()
     total_products_count = Product.objects.filter(is_active=True).count()
     delivery_methods = DeliveryMethod.objects.filter(is_active=True).order_by("order", "id")
-    payment_methods = PaymentMethod.objects.filter(is_active=True).order_by("order", "id")
+    payment_methods = PaymentMethod.objects.filter(is_active=True, show_on_delivery_page=True).order_by("order", "id")
     faqs = DeliveryFaq.objects.filter(is_active=True).order_by("order", "id")
 
     seo_data = settings.get_page_seo("delivery")
