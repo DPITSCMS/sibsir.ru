@@ -309,3 +309,35 @@ def yandex_verification_view(request, filename="yandex_2481be1b37f5b18c.html"):
         return HttpResponse(content, content_type="text/html; charset=UTF-8")
 
     return HttpResponse("Not Found", status=404)
+
+
+def google_verification_view(request, filename="google70ba8bfb8c55d9f9.html"):
+    """
+    Отдает файл подтверждения прав Google Search Console (google<код>.html).
+    1. Ищет физический файл в BASE_DIR или корне проекта.
+    2. Если файла нет, генерирует стандартное содержимое по имени файла.
+    """
+    if not filename:
+        filename = "google70ba8bfb8c55d9f9.html"
+
+    # Проверка физического файла в BASE_DIR и выше
+    candidates = [
+        Path(django_settings.BASE_DIR) / filename,
+        Path(django_settings.BASE_DIR).parent / filename,
+    ]
+    for file_path in candidates:
+        if file_path.is_file():
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                return HttpResponse(content, content_type="text/html; charset=UTF-8")
+            except Exception:
+                pass
+
+    # Генерация на лету по имени файла google<hash>.html
+    match = re.match(r"^google([a-zA-Z0-9]+)\.html$", filename)
+    if match:
+        content = f"google-site-verification: {filename}"
+        return HttpResponse(content, content_type="text/html; charset=UTF-8")
+
+    return HttpResponse("Not Found", status=404)

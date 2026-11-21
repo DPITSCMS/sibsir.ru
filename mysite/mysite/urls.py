@@ -13,6 +13,7 @@ from main.seo_views import (
     sitemap_html_view,
     favicon_view,
     yandex_verification_view,
+    google_verification_view,
 )
 from main.feeds import LatestEntriesFeed, NewsFeed, ArticlesFeed
 
@@ -27,6 +28,8 @@ urlpatterns = [
     path('rss/articles/', ArticlesFeed(), name='articles_rss_feed'),
     path('yandex_2481be1b37f5b18c.html', yandex_verification_view, name='yandex_verification_file'),
     re_path(r'^(?P<filename>yandex_[a-zA-Z0-9]+\.html)$', yandex_verification_view, name='yandex_verification_any'),
+    path('google70ba8bfb8c55d9f9.html', google_verification_view, name='google_verification_file'),
+    re_path(r'^(?P<filename>google[a-zA-Z0-9]+\.html)$', google_verification_view, name='google_verification_any'),
     path('admin/', admin.site.urls),
     path('tinymce/', include('tinymce.urls')),
     path('admin-tinymce-upload/', tinymce_image_upload, name='tinymce_image_upload'),
