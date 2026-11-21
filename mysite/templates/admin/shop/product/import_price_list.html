@@ -1,0 +1,300 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}Экспорт и импорт прайс-листа | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label='shop' %}">Каталог товаров</a>
+  &rsaquo; <a href="{% url 'admin:shop_product_changelist' %}">Товары</a>
+  &rsaquo; Экспорт и импорт прайс-листа
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="price-import-container" style="max-width: 1200px; margin: 0 auto; padding: 10px 0 50px 0;">
+
+  <!-- Header Banner -->
+  <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; padding: 26px 30px; border-radius: 14px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; border: 1px solid rgba(255,255,255,0.08);">
+    <div>
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <span style="background: rgba(255, 132, 0, 0.2); color: #ff8400; padding: 8px 12px; border-radius: 10px; font-size: 1.4rem; display: inline-flex; align-items: center;">
+          <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+        </span>
+        <h1 style="font-size: 1.45rem; font-weight: 800; margin: 0; color: #ffffff; letter-spacing: -0.3px;">
+          Экспорт и импорт прайс-листа каталога
+        </h1>
+      </div>
+      <p style="color: #94a3b8; margin: 0; font-size: 0.9rem; max-width: 720px; line-height: 1.5;">
+        Быстрое обновление цен и оптовых условий для всей продукции Сибсыр. Формат Microsoft Excel (.xlsx) с поддержкой UTF-8 — корректно открывается и сохраняется на iPhone, iPad, Android, Mac и Windows.
+      </p>
+    </div>
+
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <a href="{% url 'admin:shop_product_export_price_list' %}" class="sib-btn-action primary" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; padding: 10px 16px; border-radius: 8px; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
+        <i class="bi bi-download"></i> Экспортировать текущий прайс (.xlsx)
+      </a>
+      <a href="{% url 'admin:shop_product_download_template' %}" class="sib-btn-action" style="background: rgba(255,255,255,0.08); color: #e2e8f0; font-weight: 600; padding: 10px 16px; border-radius: 8px; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; border: 1px solid rgba(255,255,255,0.15);">
+        <i class="bi bi-file-earmark-arrow-down"></i> Скачать шаблон
+      </a>
+    </div>
+  </div>
+
+  <!-- Instruction Cards Grid -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <!-- Col 1 -->
+    <div style="background: var(--admin-card-bg, #1e293b); border: 1px solid var(--admin-border-color, #334155); border-radius: 10px; padding: 16px 18px; border-top: 3px solid #64748b;">
+      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--admin-text-title, #f8fafc); font-size: 0.95rem; margin-bottom: 6px;">
+        <span style="background: #e2e8f0; color: #334155; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">1</span>
+        Имя товаров
+        <span style="background: #fee2e2; color: #b91c1c; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: auto;">Защищено</span>
+      </div>
+      <p style="color: var(--admin-text-muted, #94a3b8); font-size: 0.82rem; margin: 0; line-height: 1.4;">
+        <strong>Нельзя редактировать.</strong> В Excel столбец заблокирован от случайных изменений. Используется для точной привязки цен к товару в каталоге.
+      </p>
+    </div>
+
+    <!-- Col 2 -->
+    <div style="background: var(--admin-card-bg, #1e293b); border: 1px solid var(--admin-border-color, #334155); border-radius: 10px; padding: 16px 18px; border-top: 3px solid #0284c7;">
+      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--admin-text-title, #f8fafc); font-size: 0.95rem; margin-bottom: 6px;">
+        <span style="background: #0284c7; color: #ffffff; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">2</span>
+        Цена для обычных покупателей
+      </div>
+      <p style="color: var(--admin-text-muted, #94a3b8); font-size: 0.82rem; margin: 0; line-height: 1.4;">
+        Розничная стоимость в рублях (например: <code>450</code> или <code>450 ₽</code>). Если 0 или оставить пустым — на сайте будет отображаться «По запросу».
+      </p>
+    </div>
+
+    <!-- Col 3 -->
+    <div style="background: var(--admin-card-bg, #1e293b); border: 1px solid var(--admin-border-color, #334155); border-radius: 10px; padding: 16px 18px; border-top: 3px solid #10b981;">
+      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--admin-text-title, #f8fafc); font-size: 0.95rem; margin-bottom: 6px;">
+        <span style="background: #10b981; color: #ffffff; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">3</span>
+        Цена оптом
+      </div>
+      <p style="color: var(--admin-text-muted, #94a3b8); font-size: 0.82rem; margin: 0; line-height: 1.4;">
+        Оптовая стоимость в рублях (например: <code>340</code>). Отображается в B2B-предложениях, оптовой рассылке и карточках товаров оптовикам.
+      </p>
+    </div>
+
+    <!-- Col 4 -->
+    <div style="background: var(--admin-card-bg, #1e293b); border: 1px solid var(--admin-border-color, #334155); border-radius: 10px; padding: 16px 18px; border-top: 3px solid #f59e0b;">
+      <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--admin-text-title, #f8fafc); font-size: 0.95rem; margin-bottom: 6px;">
+        <span style="background: #f59e0b; color: #ffffff; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">4</span>
+        Количество для покупки оптом
+      </div>
+      <p style="color: var(--admin-text-muted, #94a3b8); font-size: 0.82rem; margin: 0; line-height: 1.4;">
+        Условие предоставления оптовой цены. Например: <code>от 10 шт.</code>, <code>от 1 коробки</code>, <code>от 5 кг</code>.
+      </p>
+    </div>
+  </div>
+
+  <!-- Upload Form Card -->
+  <div style="background: var(--admin-card-bg, #1e293b); border: 1px solid var(--admin-border-color, #334155); border-radius: 12px; padding: 26px 28px; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.06);">
+    <h2 style="font-size: 1.15rem; font-weight: 700; margin: 0 0 16px 0; color: var(--admin-text-title, #f8fafc); display: flex; align-items: center; gap: 8px;">
+      <i class="bi bi-cloud-arrow-up" style="color: #ff8400;"></i> Загрузка файла прайс-листа
+    </h2>
+
+    <form method="post" enctype="multipart/form-data" id="price-import-form">
+      {% csrf_token %}
+
+      <div style="border: 2px dashed var(--admin-border-color, #475569); border-radius: 10px; padding: 32px 20px; text-align: center; background: rgba(0,0,0,0.03); transition: border-color 0.2s, background 0.2s; cursor: pointer;" id="drop-zone" onclick="document.getElementById('price_file_input').click();">
+        <i class="bi bi-file-earmark-excel" style="font-size: 3rem; color: #10b981; display: block; margin-bottom: 10px;"></i>
+        <div style="font-size: 1rem; font-weight: 600; color: var(--admin-text-main, #e2e8f0); margin-bottom: 4px;">
+          Нажмите для выбора файла или перетащите его сюда
+        </div>
+        <div style="font-size: 0.82rem; color: var(--admin-text-muted, #94a3b8);">
+          Поддерживаются форматы <strong>.xlsx</strong> (Microsoft Excel) и <strong>.csv</strong> (UTF-8)
+        </div>
+        <div id="file-chosen-name" style="margin-top: 14px; font-weight: 700; color: #ff8400; font-size: 0.95rem; display: none;"></div>
+      </div>
+
+      <input type="file" name="price_file" id="price_file_input" accept=".xlsx,.csv" style="display: none;" onchange="handleFileSelect(this);" required />
+
+      <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+          <input type="checkbox" name="dry_run" value="1" id="dry_run_checkbox" checked style="width: 18px; height: 18px; accent-color: #ff8400;" />
+          <span style="color: var(--admin-text-main, #e2e8f0); font-size: 0.9rem;">
+            <strong>Предварительная проверка (Тестовый запуск)</strong> — проверить файл и показать изменения без сохранения в базу
+          </span>
+        </label>
+
+        <div style="display: flex; gap: 12px;">
+          <a href="{% url 'admin:shop_product_changelist' %}" class="button" style="background: transparent; border: 1px solid var(--admin-border-color, #475569); color: var(--admin-text-muted, #94a3b8); padding: 9px 18px; border-radius: 6px; font-size: 0.88rem; text-decoration: none;">
+            Отмена
+          </a>
+          <button type="submit" class="button" style="background: linear-gradient(135deg, #ff8400, #ea580c); color: white; font-weight: 700; padding: 10px 24px; border-radius: 6px; font-size: 0.92rem; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(255, 132, 0, 0.35);">
+            <i class="bi bi-check2-circle"></i> Загрузить и обработать
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Results Section -->
+  {% if results %}
+  <div style="background: var(--admin-card-bg, #1e293b); border: 1px solid var(--admin-border-color, #334155); border-radius: 12px; padding: 24px 28px; box-shadow: 0 2px 10px rgba(0,0,0,0.06);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+      <div>
+        <h2 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: var(--admin-text-title, #f8fafc);">
+          Отчет по обработке файла: <span style="color: #ff8400;">{{ file_name }}</span>
+        </h2>
+        <div style="font-size: 0.85rem; color: var(--admin-text-muted, #94a3b8); margin-top: 4px;">
+          {% if results.dry_run %}
+            <span style="color: #f59e0b; font-weight: 700;">[Тестовый запуск]</span> Данные не были сохранены в базу. Если результат корректен, снимите галочку «Предварительная проверка» и загрузите снова.
+          {% else %}
+            <span style="color: #10b981; font-weight: 700;">[Успешно применено]</span> Изменения записаны в базу данных каталога.
+          {% endif %}
+        </div>
+      </div>
+
+      {% if results.dry_run and results.updated_count > 0 %}
+      <button onclick="applyForReal();" class="button" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; padding: 8px 18px; border-radius: 6px; font-size: 0.88rem; border: none; cursor: pointer;">
+        <i class="bi bi-save-fill"></i> Применить изменения в базу данных
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Summary Metrics Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px;">
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--admin-border-color, #334155); border-radius: 8px; padding: 14px 16px;">
+        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--admin-text-muted, #94a3b8);">Всего строк в файле</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--admin-text-title, #f8fafc); margin-top: 3px;">{{ results.total_rows }}</div>
+      </div>
+
+      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 14px 16px;">
+        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #10b981;">Товаров к обновлению</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: #10b981; margin-top: 3px;">{{ results.updated_count }}</div>
+      </div>
+
+      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--admin-border-color, #334155); border-radius: 8px; padding: 14px 16px;">
+        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--admin-text-muted, #94a3b8);">Без изменений</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: #94a3b8; margin-top: 3px;">{{ results.unchanged_count }}</div>
+      </div>
+
+      <div style="background: {% if results.error_count > 0 %}rgba(239, 68, 68, 0.08){% else %}rgba(255,255,255,0.03){% endif %}; border: 1px solid {% if results.error_count > 0 %}rgba(239, 68, 68, 0.25){% else %}var(--admin-border-color, #334155){% endif %}; border-radius: 8px; padding: 14px 16px;">
+        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: {% if results.error_count > 0 %}#ef4444{% else %}var(--admin-text-muted, #94a3b8){% endif %};">Ошибок / не найдено</div>
+        <div style="font-size: 1.6rem; font-weight: 800; color: {% if results.error_count > 0 %}#ef4444{% else %}#94a3b8{% endif %}; margin-top: 3px;">{{ results.error_count }}</div>
+      </div>
+    </div>
+
+    <!-- Details Table -->
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--admin-border-color, #334155); color: var(--admin-text-muted, #94a3b8); text-align: left;">
+            <th style="padding: 10px 12px; width: 45px;">№</th>
+            <th style="padding: 10px 12px;">Наименование товара (не редактируется)</th>
+            <th style="padding: 10px 12px; width: 170px;">Цена обычная</th>
+            <th style="padding: 10px 12px; width: 170px;">Цена оптом</th>
+            <th style="padding: 10px 12px; width: 190px;">Количество оптом</th>
+            <th style="padding: 10px 12px; width: 140px; text-align: center;">Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in results.items %}
+          <tr style="border-bottom: 1px solid var(--admin-border-color, #334155); {% if item.status == 'updated' %}background: rgba(16, 185, 129, 0.04);{% elif item.status == 'error' %}background: rgba(239, 68, 68, 0.05);{% endif %}">
+            <td style="padding: 10px 12px; color: var(--admin-text-muted, #94a3b8); font-size: 0.8rem;">
+              {{ item.row_num }}
+            </td>
+            <td style="padding: 10px 12px;">
+              <strong style="color: var(--admin-text-title, #f8fafc);">{{ item.title }}</strong>
+              {% if item.message %}
+              <div style="font-size: 0.75rem; color: {% if item.status == 'error' %}#ef4444{% elif item.status == 'updated' %}#10b981{% else %}#94a3b8{% endif %}; margin-top: 2px;">
+                {{ item.message }}
+              </div>
+              {% endif %}
+            </td>
+            <td style="padding: 10px 12px; white-space: nowrap;">
+              {% if item.status == 'updated' and item.old_retail != item.new_retail %}
+                <span style="text-decoration: line-through; color: #94a3b8; font-size: 0.78rem;">{{ item.old_retail }}</span>
+                <span style="color: #38bdf8; font-weight: 700; margin-left: 4px;">➔ {{ item.new_retail }}</span>
+              {% else %}
+                <span style="color: var(--admin-text-main, #e2e8f0);">{{ item.new_retail }}</span>
+              {% endif %}
+            </td>
+            <td style="padding: 10px 12px; white-space: nowrap;">
+              {% if item.status == 'updated' and item.old_wholesale != item.new_wholesale %}
+                <span style="text-decoration: line-through; color: #94a3b8; font-size: 0.78rem;">{{ item.old_wholesale }}</span>
+                <span style="color: #34d399; font-weight: 700; margin-left: 4px;">➔ {{ item.new_wholesale }}</span>
+              {% else %}
+                <span style="color: var(--admin-text-main, #e2e8f0);">{{ item.new_wholesale }}</span>
+              {% endif %}
+            </td>
+            <td style="padding: 10px 12px;">
+              {% if item.status == 'updated' and item.old_qty != item.new_qty %}
+                <span style="text-decoration: line-through; color: #94a3b8; font-size: 0.78rem;">{{ item.old_qty }}</span>
+                <span style="color: #fbbf24; font-weight: 600; margin-left: 4px;">➔ {{ item.new_qty }}</span>
+              {% else %}
+                <span style="color: var(--admin-text-main, #e2e8f0);">{{ item.new_qty }}</span>
+              {% endif %}
+            </td>
+            <td style="padding: 10px 12px; text-align: center;">
+              {% if item.status == 'updated' %}
+                <span style="background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">
+                  {{ item.status_label }}
+                </span>
+              {% elif item.status == 'unchanged' %}
+                <span style="background: rgba(148, 163, 184, 0.2); color: #94a3b8; padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 11px;">
+                  Без изменений
+                </span>
+              {% else %}
+                <span style="background: #ef4444; color: white; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">
+                  {{ item.status_label }}
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+function handleFileSelect(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const nameEl = document.getElementById('file-chosen-name');
+    nameEl.innerHTML = '<i class="bi bi-file-earmark-check-fill"></i> Выбран файл: <strong>' + file.name + '</strong> (' + (file.size / 1024).toFixed(1) + ' КБ)';
+    nameEl.style.display = 'block';
+  }
+}
+
+// Drag & drop support
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('price_file_input');
+
+['dragenter', 'dragover'].forEach(eventName => {
+  dropZone.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = '#ff8400';
+    dropZone.style.background = 'rgba(255, 132, 0, 0.05)';
+  });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = 'var(--admin-border-color, #475569)';
+    dropZone.style.background = 'rgba(0,0,0,0.03)';
+  });
+});
+
+dropZone.addEventListener('drop', (e) => {
+  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    fileInput.files = e.dataTransfer.files;
+    handleFileSelect(fileInput);
+  }
+});
+
+function applyForReal() {
+  const dryRunBox = document.getElementById('dry_run_checkbox');
+  dryRunBox.checked = false;
+  document.getElementById('price-import-form').submit();
+}
+</script>
+{% endblock %}

@@ -327,3 +327,146 @@ class PriceListGeneratorTest(TestCase):
             self.assertIn("xl/workbook.xml", names)
             self.assertIn("xl/styles.xml", names)
             self.assertIn("xl/worksheets/sheet1.xml", names)
+
+
+class PriceManagerCatalogTest(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        from shop.models import Category, Product
+        User = get_user_model()
+        self.admin_user = User.objects.create_superuser(
+            username="admin_price",
+            password="adminpassword123",
+            email="admin_price@sibsir.ru"
+        )
+        self.category = Category.objects.create(name="Полутвердые сыры", slug="polutverdye-syry")
+        self.product1 = Product.objects.create(
+            title="Сыр Голландский 45%",
+            category=self.category,
+            price_numeric=400,
+            price_display="400 ₽",
+            wholesale_price_numeric=320,
+            wholesale_price_display="320 ₽",
+            wholesale_min_qty="от 10 шт.",
+            is_active=True
+        )
+        self.product2 = Product.objects.create(
+            title="Сыр Российский ТМ «Сибсыр»",
+            category=self.category,
+            price_numeric=450,
+            price_display="450 ₽",
+            wholesale_price_numeric=350,
+            wholesale_price_display="350 ₽",
+            wholesale_min_qty="от 5 шт.",
+            is_active=True
+        )
+
+    def test_export_catalog_prices_xlsx(self):
+        from shop.price_manager import export_catalog_prices_xlsx
+        content, filename = export_catalog_prices_xlsx()
+        self.assertTrue(len(content) > 0)
+        self.assertTrue(filename.endswith(".xlsx"))
+
+        # Verify OpenXML content
+        with zipfile.ZipFile(io.BytesIO(content)) as z:
+            names = z.namelist()
+            self.assertIn("xl/worksheets/sheet1.xml", names)
+            sheet_xml = z.read("xl/worksheets/sheet1.xml").decode("utf-8")
+            # Must include protection
+            self.assertIn("<sheetProtection", sheet_xml)
+            # Must include product titles
+            self.assertIn("Сыр Голландский 45%", sheet_xml)
+            self.assertIn("Сыр Российский ТМ «Сибсыр»", sheet_xml)
+
+    def test_roundtrip_export_and_import(self):
+        from shop.price_manager import export_catalog_prices_xlsx, read_price_list_file, import_catalog_prices
+        
+        # 1. Export
+        content, filename = export_catalog_prices_xlsx()
+        
+        # 2. Parse exported file
+        items = read_price_list_file(content, filename=filename)
+        self.assertEqual(len(items), 2)
+        
+        # 3. Modify prices in items
+        for it in items:
+            if "Голландский" in it["title"]:
+                it["retail_price_raw"] = "480 ₽"
+                it["wholesale_price_raw"] = "390"
+                it["wholesale_min_qty_raw"] = "от 20 шт."
+        
+        # 4. Dry run import
+        dry_res = import_catalog_prices(items, dry_run=True)
+        self.assertTrue(dry_res["dry_run"])
+        self.assertEqual(dry_res["updated_count"], 1)
+        self.assertEqual(dry_res["unchanged_count"], 1)
+        
+        # Ensure database not modified in dry run
+        self.product1.refresh_from_db()
+        self.assertEqual(self.product1.price_numeric, 400)
+        
+        # 5. Real import
+        real_res = import_catalog_prices(items, dry_run=False)
+        self.assertEqual(real_res["updated_count"], 1)
+        self.assertEqual(real_res["unchanged_count"], 1)
+        
+        # Verify changes saved
+        self.product1.refresh_from_db()
+        self.assertEqual(self.product1.price_numeric, 480)
+        self.assertEqual(self.product1.wholesale_price_numeric, 390)
+        self.assertEqual(self.product1.wholesale_min_qty, "от 20 шт.")
+        # Product title MUST NOT be altered
+        self.assertEqual(self.product1.title, "Сыр Голландский 45%")
+
+    def test_import_with_csv(self):
+        from shop.price_manager import read_price_list_file, import_catalog_prices
+        
+        csv_text = (
+            "Имя товара (нельзя редактировать);Цена для обычных пользователей (₽);Цена оптом (₽);Количество для покупки оптом\n"
+            "Сыр Голландский 45%;520;410;от 15 шт.\n"
+            "Несуществующий сыр;100;90;от 1 шт.\n"
+        )
+        csv_bytes = csv_text.encode("utf-8")
+        items = read_price_list_file(csv_bytes, filename="prices.csv")
+        self.assertEqual(len(items), 2)
+        
+        res = import_catalog_prices(items, dry_run=False)
+        self.assertEqual(res["updated_count"], 1)
+        self.assertEqual(res["error_count"], 1)
+        
+        self.product1.refresh_from_db()
+        self.assertEqual(self.product1.price_numeric, 520)
+        self.assertEqual(self.product1.wholesale_price_numeric, 410)
+        self.assertEqual(self.product1.wholesale_min_qty, "от 15 шт.")
+
+    def test_admin_price_views(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from shop.price_manager import export_catalog_prices_xlsx
+        
+        self.client.force_login(self.admin_user)
+        
+        # Export view
+        export_url = reverse("admin:shop_product_export_price_list")
+        resp = self.client.get(export_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        self.assertIn("attachment", resp["Content-Disposition"])
+        
+        # Download template view
+        tmpl_url = reverse("admin:shop_product_download_template")
+        resp = self.client.get(tmpl_url)
+        self.assertEqual(resp.status_code, 200)
+        
+        # Import view GET
+        import_url = reverse("admin:shop_product_import_price_list")
+        resp = self.client.get(import_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Экспорт и импорт прайс-листа")
+        
+        # Import view POST with generated xlsx
+        xlsx_bytes, filename = export_catalog_prices_xlsx()
+        upload = SimpleUploadedFile("prices.xlsx", xlsx_bytes, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        resp = self.client.post(import_url, {"price_file": upload, "dry_run": "1"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Тестовый запуск")
+

@@ -1,14 +1,26 @@
 import json
+import logging
+import urllib.parse
 from decimal import Decimal
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from django.urls import reverse
+from django.urls import reverse, path
 from main.admin_mixins import RichTextAdminMixin, DragDropReorderMixin
 from .models import Category, Product, Promotion, PromoCode, Order, OrderItem, Review
+from .price_manager import (
+    export_catalog_prices_xlsx,
+    generate_empty_price_template_xlsx,
+    read_price_list_file,
+    import_catalog_prices,
+)
 from news.models import News
 from articles.models import Article
+
+logger = logging.getLogger(__name__)
 
 
 class NewsCategoryInline(admin.TabularInline):
@@ -441,6 +453,7 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
     badge_tag.short_description = "Метка"
 
     actions = [
+        "export_selected_price_list",
         "generate_seo_selected",
         "make_featured", 
         "make_unfeatured", 
@@ -450,6 +463,116 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
         "apply_discount_15", 
         "clear_discounts"
     ]
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "export-price-list/",
+                self.admin_site.admin_view(self.export_price_list_view),
+                name="shop_product_export_price_list",
+            ),
+            path(
+                "download-template/",
+                self.admin_site.admin_view(self.download_template_view),
+                name="shop_product_download_template",
+            ),
+            path(
+                "import-price-list/",
+                self.admin_site.admin_view(self.import_price_list_view),
+                name="shop_product_import_price_list",
+            ),
+        ]
+        return custom_urls + urls
+
+    def export_price_list_view(self, request):
+        """Скачивание актуального прайс-листа каталога в формате Excel (.xlsx)."""
+        queryset = self.get_queryset(request)
+        xlsx_bytes, filename = export_catalog_prices_xlsx(queryset=queryset)
+        response = HttpResponse(
+            xlsx_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        ascii_filename = "Sibsir_Catalog_Prices.xlsx"
+        encoded_filename = urllib.parse.quote(filename)
+        response["Content-Disposition"] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+        return response
+
+    def download_template_view(self, request):
+        """Скачивание шаблона прайс-листа Excel для заполнения."""
+        xlsx_bytes, filename = generate_empty_price_template_xlsx()
+        response = HttpResponse(
+            xlsx_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        ascii_filename = "Sibsir_Price_Template.xlsx"
+        encoded_filename = urllib.parse.quote(filename)
+        response["Content-Disposition"] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+        return response
+
+    def import_price_list_view(self, request):
+        """Страница загрузки и импорта прайс-листа."""
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": "Экспорт и импорт прайс-листа каталога продукции",
+            "has_permission": True,
+        }
+
+        if request.method == "POST":
+            excel_file = request.FILES.get("price_file")
+            dry_run = request.POST.get("dry_run") == "1"
+
+            if not excel_file:
+                messages.error(request, "Пожалуйста, выберите файл прайс-листа (.xlsx или .csv).")
+                return render(request, "admin/shop/product/import_price_list.html", context)
+
+            try:
+                file_bytes = excel_file.read()
+                items = read_price_list_file(file_bytes, filename=excel_file.name)
+
+                if not items:
+                    messages.warning(request, "В файле не найдено строк с товарами для импорта.")
+                    return render(request, "admin/shop/product/import_price_list.html", context)
+
+                results = import_catalog_prices(items, dry_run=dry_run)
+                context["results"] = results
+                context["file_name"] = excel_file.name
+
+                if dry_run:
+                    messages.info(
+                        request,
+                        f"Тестовый запуск: обработано строк {results['total_rows']}. "
+                        f"Готово к обновлению: {results['updated_count']} товаров. Изменения НЕ сохранены в базу."
+                    )
+                else:
+                    if results["updated_count"] > 0:
+                        messages.success(
+                            request,
+                            f"Прайс-лист успешно импортирован! Обновлено товаров: {results['updated_count']} из {results['total_rows']}."
+                        )
+                    else:
+                        messages.warning(
+                            request,
+                            f"Файл обработан, но ни один товар не был обновлен (без изменений: {results['unchanged_count']}, ошибок: {results['error_count']})."
+                        )
+            except Exception as e:
+                logger.exception("Ошибка при импорте прайс-листа: %s", e)
+                messages.error(request, f"Ошибка обработки файла: {e}")
+
+        return render(request, "admin/shop/product/import_price_list.html", context)
+
+    @admin.action(description="📥 Экспортировать прайс-лист выбранных товаров (.xlsx)")
+    def export_selected_price_list(self, request, queryset):
+        xlsx_bytes, filename = export_catalog_prices_xlsx(queryset=queryset)
+        response = HttpResponse(
+            xlsx_bytes,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        ascii_filename = "Sibsir_Catalog_Prices.xlsx"
+        encoded_filename = urllib.parse.quote(filename)
+        response["Content-Disposition"] = f'attachment; filename="{ascii_filename}"; filename*=UTF-8\'\'{encoded_filename}'
+        return response
 
     @admin.action(description="⚡ Сгенерировать SEO-теги для выбранных товаров")
     def generate_seo_selected(self, request, queryset):
