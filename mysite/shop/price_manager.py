@@ -1,8 +1,8 @@
 """
 Модуль экспорта и импорта прайс-листа каталога продукции ТМ «Сибсыр».
 Формат: Excel (.xlsx, чистый OpenXML без сторонних библиотек) и CSV (UTF-8).
-Поддерживает редактирование цен на всех устройствах (Windows, macOS, iOS, Android, Linux).
-Защищает столбец «Наименование товара» от редактирования.
+Поддерживает свободное редактирование наименований, цен и условий на всех устройствах (Windows, macOS, iOS, Android, Linux).
+Файл полностью открыт для редактирования в любых табличных редакторах (Excel, LibreOffice, МойОфис, Google Таблицы).
 """
 
 import io
@@ -16,6 +16,7 @@ from xml.sax.saxutils import escape as xml_escape
 
 from django.utils import timezone
 from django.db import transaction
+from django.utils.text import slugify
 
 logger = logging.getLogger(__name__)
 
@@ -70,14 +71,14 @@ def _clean_qty_value(val) -> str:
 
 def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
     """
-    Генерирует Excel (.xlsx) с прайс-листом каталога продукции для редактирования цен.
+    Генерирует Excel (.xlsx) с прайс-листом каталога продукции для свободного редактирования цен и наименований.
     
     Колонки:
-    1. Наименование товара (нельзя редактировать - заблокировано в Excel)
-    2. Цена для обычных пользователей, ₽ (разблокировано)
-    3. Цена оптом, ₽ (разблокировано)
-    4. Количество для покупки оптом (разблокировано)
-    5. ID товара (служебный код)
+    1. Наименование товара (редактируемое)
+    2. Цена для обычных пользователей, ₽ (редактируемое)
+    3. Цена оптом, ₽ (редактируемое)
+    4. Количество для покупки оптом (редактируемое)
+    5. ID товара (служебный код для точной привязки)
     
     Возвращает (bytes, filename).
     """
@@ -123,38 +124,38 @@ def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
 
     # Стили:
     # Шрифты:
-    # 0: Regular Calibri 10pt
+    # 0: Regular Calibri 10pt #0F172A
     # 1: Bold Calibri 13pt #1E293B (Заголовок листа)
     # 2: Bold Calibri 10pt #FFFFFF (Заголовки колонок)
     # 3: Regular Calibri 9pt #64748B (Инструкция / подзаголовок)
     # 4: Bold Calibri 10pt #15803D (Оптовая цена)
     # 5: Bold Calibri 10pt #0F172A (Розничная цена)
-    # 6: Regular Calibri 10pt #64748B (Заблокированное имя товара и служебный ID)
+    # 6: Regular Calibri 10pt #475569 (Служебный ID)
     #
     # Заливки:
     # 0: none
     # 1: gray125
     # 2: #FF8400 (Оранжевый Сибсыр - заголовки)
-    # 3: #F8FAFC (Светло-серый фон для заблокированного столбца)
+    # 3: #F8FAFC (Светло-серый фон)
     # 4: #FFFFFF (Белый для редактируемых колонок)
     # 5: #F0FDF4 (Светло-зеленый для оптовых цен)
-    # 6: #FEF3C7 (Предупреждение)
+    # 6: #FEF3C7 (Предупреждение / памятка)
     #
     # Границы:
     # 0: none
     # 1: thin #CBD5E1 (все стороны)
     #
     # CellXfs:
-    # xfId 0: default (locked)
-    # xfId 1: Title bold (locked)
-    # xfId 2: Subtitle/Instruction (locked)
-    # xfId 3: Header cell (locked)
-    # xfId 4: Read-only product title (locked="1", gray background, left align)
-    # xfId 5: Editable regular price (locked="0", white background, right align)
-    # xfId 6: Editable wholesale price (locked="0", light-green background, right align, bold green text)
-    # xfId 7: Editable min quantity (locked="0", white background, left align)
-    # xfId 8: Read-only product ID (locked="1", gray background, center align)
-    # xfId 9: Instruction banner warning (locked="1", amber fill)
+    # xfId 0: default
+    # xfId 1: Title bold
+    # xfId 2: Subtitle/Instruction
+    # xfId 3: Header cell
+    # xfId 4: Product title (EDITABLE, white background, left align)
+    # xfId 5: Editable regular price (white background, right align)
+    # xfId 6: Editable wholesale price (light-green background, right align, bold green text)
+    # xfId 7: Editable min quantity (white background, left align)
+    # xfId 8: Product ID (subtle gray background, center align)
+    # xfId 9: Instruction banner
     styles = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <fonts count="7">
@@ -194,16 +195,16 @@ def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
     <xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>
     <!-- 3: header cell -->
     <xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
-    <!-- 4: Product title (READ-ONLY, locked=1) -->
-    <xf numFmtId="0" fontId="6" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyProtection="1"><protection locked="1"/></xf>
-    <!-- 5: Regular price (EDITABLE, locked=0) -->
-    <xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyProtection="1"><alignment horizontal="right" vertical="center"/><protection locked="0"/></xf>
-    <!-- 6: Wholesale price (EDITABLE, locked=0) -->
-    <xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyProtection="1"><alignment horizontal="right" vertical="center"/><protection locked="0"/></xf>
-    <!-- 7: Wholesale min qty (EDITABLE, locked=0) -->
-    <xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyProtection="1"><alignment horizontal="left" vertical="center"/><protection locked="0"/></xf>
-    <!-- 8: Technical Product ID (READ-ONLY, locked=1) -->
-    <xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1" applyProtection="1"><alignment horizontal="center" vertical="center"/><protection locked="1"/></xf>
+    <!-- 4: Product title (EDITABLE, white background, left align) -->
+    <xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+    <!-- 5: Regular price (EDITABLE, white background, right align) -->
+    <xf numFmtId="0" fontId="5" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+    <!-- 6: Wholesale price (EDITABLE, light-green background, right align, bold green text) -->
+    <xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+    <!-- 7: Wholesale min qty (EDITABLE, white background, left align) -->
+    <xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+    <!-- 8: Technical Product ID (subtle gray background, center align) -->
+    <xf numFmtId="0" fontId="6" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
     <!-- 9: Instruction banner warning -->
     <xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment wrapText="1" vertical="center"/></xf>
   </cellXfs>
@@ -226,13 +227,13 @@ def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
 
     # Заголовок
     sheet_rows.append(f'<row r="{current_row}">')
-    sheet_rows.append(make_cell(f"A{current_row}", "ТМ «СИБСЫР» — ПРАЙС-ЛИСТ КАТАЛОГА ПРОДУКЦИИ (РЕДАКТИРОВАНИЕ ЦЕН)", 1))
+    sheet_rows.append(make_cell(f"A{current_row}", "ТМ «СИБСЫР» — ПРАЙС-ЛИСТ КАТАЛОГА ПРОДУКЦИИ (РЕДАКТИРОВАНИЕ ЦЕН И ТОВАРОВ)", 1))
     sheet_rows.append('</row>')
     current_row += 1
 
     # Подзаголовок
     sheet_rows.append(f'<row r="{current_row}">')
-    sheet_rows.append(make_cell(f"A{current_row}", f"Выгружен: {date_str} | Всего товаров: {queryset.count()} | Кодировка: UTF-8 (поддерживается на смартфонах, планшетах и ПК)", 2))
+    sheet_rows.append(make_cell(f"A{current_row}", f"Выгружен: {date_str} | Всего товаров: {queryset.count()} | Кодировка: UTF-8 (полностью открыт для редактирования на любых устройствах)", 2))
     sheet_rows.append('</row>')
     current_row += 1
 
@@ -240,7 +241,7 @@ def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
     sheet_rows.append(f'<row r="{current_row}" ht="32" customHeight="1">')
     sheet_rows.append(make_cell(
         f"A{current_row}", 
-        "⚠️ ВНИМАНИЕ: Столбец «Наименование товара» защищен от редактирования. Редактируйте колонки «Цена для обычных пользователей», «Цена оптом» и «Количество для покупки оптом». После редактирования загрузите файл через панель управления.", 
+        "💡 ПАМЯТКА: Файл полностью доступен для редактирования. Вы можете свободно изменять наименования товаров, розничные и оптовые цены, а также условия минимального опта. Столбец «ID товара» используется для точного сопоставления товара в базе данных при импорте.", 
         9
     ))
     sheet_rows.append('</row>')
@@ -248,11 +249,11 @@ def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
 
     # Заголовки колонок
     headers = [
-        ("Имя товара (нельзя редактировать)", 46),
+        ("Наименование товара", 46),
         ("Цена для обычных пользователей (₽)", 26),
         ("Цена оптом (₽)", 22),
         ("Количество для покупки оптом", 30),
-        ("ID товара (служебный)", 14),
+        ("ID товара", 14),
     ]
 
     header_cells = []
@@ -269,11 +270,11 @@ def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
         min_qty = prod.wholesale_min_qty or "от 10 шт."
 
         row_cells = [
-            make_cell(f"A{current_row}", prod.title, 4),  # Заблокировано
-            make_cell(f"B{current_row}", retail_price, 5, is_numeric=True),  # Разблокировано
-            make_cell(f"C{current_row}", wholesale_price, 6, is_numeric=True),  # Разблокировано
-            make_cell(f"D{current_row}", min_qty, 7),  # Разблокировано
-            make_cell(f"E{current_row}", prod.id, 8, is_numeric=True),  # Заблокировано
+            make_cell(f"A{current_row}", prod.title, 4),  # Редактируемое наименование
+            make_cell(f"B{current_row}", retail_price, 5, is_numeric=True),  # Розничная цена
+            make_cell(f"C{current_row}", wholesale_price, 6, is_numeric=True),  # Оптовая цена
+            make_cell(f"D{current_row}", min_qty, 7),  # Минимальный объем
+            make_cell(f"E{current_row}", prod.id, 8, is_numeric=True),  # ID товара
         ]
         sheet_rows.append(f'<row r="{current_row}">{"".join(row_cells)}</row>')
         current_row += 1
@@ -283,8 +284,7 @@ def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
     for col_idx, (_, w) in enumerate(headers, start=1):
         cols_xml.append(f'<col min="{col_idx}" max="{col_idx}" width="{w}" customWidth="1"/>')
 
-    # Защита листа: запрет редактирования заблокированных ячеек (столбец А и Е),
-    # при этом разблокированные ячейки (B, C, D) разрешены для выделения и изменения!
+    # Лист данных без блокировок и защиты — полностью открыт для редактирования
     worksheet = f"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <cols>
@@ -293,7 +293,6 @@ def export_catalog_prices_xlsx(queryset=None) -> tuple[bytes, str]:
   <sheetData>
     {"".join(sheet_rows)}
   </sheetData>
-  <sheetProtection sheet="1" objects="1" scenarios="1" selectLockedCells="1" selectUnlockedCells="1"/>
 </worksheet>"""
 
     buf = io.BytesIO()
@@ -564,17 +563,18 @@ def read_price_list_file(file_bytes: bytes, filename: str = "") -> list[dict]:
 
 def import_catalog_prices(items: list[dict], dry_run: bool = False) -> dict:
     """
-    Применяет обновленные цены к товарам каталога.
+    Применяет обновленные данные (цены, условия и наименования) к товарам каталога.
     
     Правила:
-    - Наименование товара НЕ перезаписывается и НЕ изменяется (используется строго для идентификации).
-    - Товар ищется по product_id (если указан), либо по точному/нечувствительному к регистру названию.
-    - Обновляются: price_numeric, price_display, wholesale_price_numeric, wholesale_price_display, wholesale_min_qty.
-    - При dry_run=True база данных не модифицируется, формируется лишь подробный отчет.
+    - Товар ищется по product_id (если указан), либо по точному/нормализованному наименованию.
+    - При наличии product_id разрешено редактирование наименования товара (title).
+    - Новые строки без ID и с новым наименованием создаются как новые товары в каталоге.
+    - Обновляются: title, price_numeric, price_display, wholesale_price_numeric, wholesale_price_display, wholesale_min_qty.
+    - При dry_run=True база данных не модифицируется, формируется подробный отчет.
     
     Возвращает словарь с подробными результатами и статистикой.
     """
-    from shop.models import Product
+    from shop.models import Category, Product
 
     results = {
         "success": True,
@@ -586,10 +586,10 @@ def import_catalog_prices(items: list[dict], dry_run: bool = False) -> dict:
         "items": [],
     }
 
-    # Кэшируем товары по ID и по нормализованному названию для быстрой обработки
     all_products = list(Product.objects.all())
     id_map = {p.id: p for p in all_products}
     title_map = {p.title.strip().lower(): p for p in all_products}
+    default_cat = Category.objects.filter(is_active=True).first()
 
     with transaction.atomic():
         for item in items:
@@ -598,71 +598,162 @@ def import_catalog_prices(items: list[dict], dry_run: bool = False) -> dict:
             title_key = clean_title.lower()
             prod_id = item.get("product_id")
 
-            # 1. Поиск товара
+            # 1. Поиск существующего товара
             product = None
             if prod_id and prod_id in id_map:
                 product = id_map[prod_id]
             elif title_key in title_map:
                 product = title_map[title_key]
             else:
-                # Попробуем без кавычек и спецсимволов
                 relaxed_key = re.sub(r'["«»„“\s]', '', title_key)
                 for existing_key, p_obj in title_map.items():
                     if re.sub(r'["«»„“\s]', '', existing_key) == relaxed_key:
                         product = p_obj
                         break
 
-            if not product:
-                results["error_count"] += 1
-                results["items"].append({
-                    "row_num": item["row_num"],
-                    "title": raw_title,
-                    "status": "error",
-                    "status_label": "Товар не найден",
-                    "message": "В каталоге отсутствует товар с таким наименованием. Имя товара защищено от создания/редактирования.",
-                    "old_retail": "—",
-                    "new_retail": item["retail_price_raw"],
-                    "old_wholesale": "—",
-                    "new_wholesale": item["wholesale_price_raw"],
-                    "old_qty": "—",
-                    "new_qty": item["wholesale_min_qty_raw"],
-                })
-                continue
-
-            # 2. Вычисляем новые значения
+            # 2. Очистка и получение новых значений цен
             new_retail_num = _clean_price_value(item["retail_price_raw"])
             new_wholesale_num = _clean_price_value(item["wholesale_price_raw"])
             new_min_qty = _clean_qty_value(item["wholesale_min_qty_raw"])
+
+            # 3. Обработка случая, когда товар не найден
+            if not product:
+                # Если указан конкретный числовой ID, но такого товара в базе нет — ошибка
+                if prod_id:
+                    results["error_count"] += 1
+                    results["items"].append({
+                        "row_num": item["row_num"],
+                        "title": raw_title,
+                        "status": "error",
+                        "status_label": "Товар не найден",
+                        "message": f"Товар с указанным ID {prod_id} отсутствует в базе данных.",
+                        "old_retail": "—",
+                        "new_retail": item["retail_price_raw"],
+                        "old_wholesale": "—",
+                        "new_wholesale": item["wholesale_price_raw"],
+                        "old_qty": "—",
+                        "new_qty": item["wholesale_min_qty_raw"],
+                    })
+                    continue
+
+                # Если ID нет и наименование не пустое — создаем новый товар
+                if clean_title:
+                    from news.models import transliterate_to_slug
+                    base_slug = transliterate_to_slug(clean_title) or f"prod-{int(timezone.now().timestamp())}"
+                    slug = base_slug[:180]
+                    counter = 1
+                    while Product.objects.filter(slug=slug).exists():
+                        slug = f"{base_slug[:170]}-{counter}"
+                        counter += 1
+
+                    new_retail_display = f"{new_retail_num} ₽" if new_retail_num > 0 else "По запросу"
+                    new_wholesale_display = f"{new_wholesale_num} ₽" if new_wholesale_num > 0 else "По запросу"
+                    qty_to_save = new_min_qty or "от 10 шт."
+
+                    created_id = None
+                    if not dry_run:
+                        new_p = Product.objects.create(
+                            category=default_cat,
+                            title=clean_title,
+                            slug=slug,
+                            price_numeric=new_retail_num,
+                            price_display=new_retail_display,
+                            wholesale_price_numeric=new_wholesale_num,
+                            wholesale_price_display=new_wholesale_display,
+                            wholesale_min_qty=qty_to_save,
+                            is_active=True,
+                        )
+                        created_id = new_p.id
+                        id_map[new_p.id] = new_p
+                        title_map[clean_title.lower()] = new_p
+
+                    results["updated_count"] += 1
+                    results["items"].append({
+                        "row_num": item["row_num"],
+                        "product_id": created_id or "новый",
+                        "title": clean_title,
+                        "status": "created",
+                        "status_label": "Создан новый товар" if not dry_run else "Будет создан",
+                        "message": f"Новый товар добавлен в каталог{' (категория: ' + default_cat.name + ')' if default_cat else ''}",
+                        "old_retail": "—",
+                        "new_retail": new_retail_display,
+                        "old_wholesale": "—",
+                        "new_wholesale": new_wholesale_display,
+                        "old_qty": "—",
+                        "new_qty": qty_to_save,
+                    })
+                    continue
+                else:
+                    results["error_count"] += 1
+                    results["items"].append({
+                        "row_num": item["row_num"],
+                        "title": "—",
+                        "status": "error",
+                        "status_label": "Пустая строка",
+                        "message": "В строке не указано наименование товара.",
+                        "old_retail": "—",
+                        "new_retail": item["retail_price_raw"],
+                        "old_wholesale": "—",
+                        "new_wholesale": item["wholesale_price_raw"],
+                        "old_qty": "—",
+                        "new_qty": item["wholesale_min_qty_raw"],
+                    })
+                    continue
+
+            # 4. Товар найден — проверка изменений
             if not new_min_qty:
                 new_min_qty = product.wholesale_min_qty or "от 10 шт."
 
+            old_title = product.title
             old_retail_num = product.price_numeric
             old_wholesale_num = product.wholesale_price_numeric
             old_min_qty = product.wholesale_min_qty
 
-            has_changes = (
-                new_retail_num != old_retail_num or
-                new_wholesale_num != old_wholesale_num or
-                new_min_qty != old_min_qty
-            )
+            title_changed = bool(clean_title and clean_title != old_title)
+            retail_changed = (new_retail_num != old_retail_num)
+            wholesale_changed = (new_wholesale_num != old_wholesale_num)
+            qty_changed = (new_min_qty != old_min_qty)
+
+            has_changes = title_changed or retail_changed or wholesale_changed or qty_changed
 
             if has_changes:
                 new_retail_display = f"{new_retail_num} ₽" if new_retail_num > 0 else "По запросу"
                 new_wholesale_display = f"{new_wholesale_num} ₽" if new_wholesale_num > 0 else "По запросу"
 
+                update_fields = [
+                    "price_numeric", 
+                    "price_display", 
+                    "wholesale_price_numeric", 
+                    "wholesale_price_display", 
+                    "wholesale_min_qty"
+                ]
+
+                if title_changed:
+                    product.title = clean_title
+                    update_fields.append("title")
+
+                product.price_numeric = new_retail_num
+                product.price_display = new_retail_display
+                product.wholesale_price_numeric = new_wholesale_num
+                product.wholesale_price_display = new_wholesale_display
+                product.wholesale_min_qty = new_min_qty
+
                 if not dry_run:
-                    product.price_numeric = new_retail_num
-                    product.price_display = new_retail_display
-                    product.wholesale_price_numeric = new_wholesale_num
-                    product.wholesale_price_display = new_wholesale_display
-                    product.wholesale_min_qty = new_min_qty
-                    product.save(update_fields=[
-                        "price_numeric", 
-                        "price_display", 
-                        "wholesale_price_numeric", 
-                        "wholesale_price_display", 
-                        "wholesale_min_qty"
-                    ])
+                    product.save(update_fields=update_fields)
+
+                change_desc_parts = []
+                if title_changed:
+                    change_desc_parts.append(f'наименование: «{old_title}» ➔ «{clean_title}»')
+                if retail_changed:
+                    change_desc_parts.append("розничная цена")
+                if wholesale_changed:
+                    change_desc_parts.append("оптовая цена")
+                if qty_changed:
+                    change_desc_parts.append("объем опта")
+
+                msg = "Обновлено: " + ", ".join(change_desc_parts) if change_desc_parts else "Данные обновлены"
+                if dry_run:
+                    msg = "Будет обновлено: " + ", ".join(change_desc_parts)
 
                 results["updated_count"] += 1
                 results["items"].append({
@@ -671,7 +762,7 @@ def import_catalog_prices(items: list[dict], dry_run: bool = False) -> dict:
                     "title": product.title,
                     "status": "updated",
                     "status_label": "Обновлен" if not dry_run else "Будет обновлен",
-                    "message": "Цены и условия успешно обновлены" if not dry_run else "Готов к применению",
+                    "message": msg,
                     "old_retail": f"{old_retail_num} ₽" if old_retail_num else "По запросу",
                     "new_retail": f"{new_retail_num} ₽" if new_retail_num else "По запросу",
                     "old_wholesale": f"{old_wholesale_num} ₽" if old_wholesale_num else "По запросу",

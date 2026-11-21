@@ -754,6 +754,18 @@ class Product(models.Model):
                     "wholesale_price_numeric", "wholesale_price_display"
                 })
 
+        if not self.slug and self.title:
+            from news.models import transliterate_to_slug
+            base_slug = transliterate_to_slug(self.title) or "product"
+            slug = base_slug[:180]
+            counter = 1
+            while Product.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug[:170]}-{counter}"
+                counter += 1
+            self.slug = slug
+            if update_fields is not None:
+                kwargs["update_fields"] = list(set(kwargs["update_fields"]) | {"slug"})
+
         if not self.meta_title or not self.meta_description or not self.meta_keywords:
             self.generate_seo(overwrite=False)
         super().save(*args, **kwargs)

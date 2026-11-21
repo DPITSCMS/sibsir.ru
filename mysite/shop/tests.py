@@ -372,11 +372,12 @@ class PriceManagerCatalogTest(TestCase):
             names = z.namelist()
             self.assertIn("xl/worksheets/sheet1.xml", names)
             sheet_xml = z.read("xl/worksheets/sheet1.xml").decode("utf-8")
-            # Must include protection
-            self.assertIn("<sheetProtection", sheet_xml)
-            # Must include product titles
+            # Must NOT include sheetProtection so that it is freely editable
+            self.assertNotIn("<sheetProtection", sheet_xml)
+            # Must include product titles and editable header
             self.assertIn("Сыр Голландский 45%", sheet_xml)
             self.assertIn("Сыр Российский ТМ «Сибсыр»", sheet_xml)
+            self.assertIn("Наименование товара", sheet_xml)
 
     def test_roundtrip_export_and_import(self):
         from shop.price_manager import export_catalog_prices_xlsx, read_price_list_file, import_catalog_prices
@@ -388,9 +389,10 @@ class PriceManagerCatalogTest(TestCase):
         items = read_price_list_file(content, filename=filename)
         self.assertEqual(len(items), 2)
         
-        # 3. Modify prices in items
+        # 3. Modify title and prices in items
         for it in items:
             if "Голландский" in it["title"]:
+                it["title"] = "Сыр Голландский Люкс 45%"
                 it["retail_price_raw"] = "480 ₽"
                 it["wholesale_price_raw"] = "390"
                 it["wholesale_min_qty_raw"] = "от 20 шт."
@@ -404,40 +406,49 @@ class PriceManagerCatalogTest(TestCase):
         # Ensure database not modified in dry run
         self.product1.refresh_from_db()
         self.assertEqual(self.product1.price_numeric, 400)
+        self.assertEqual(self.product1.title, "Сыр Голландский 45%")
         
         # 5. Real import
         real_res = import_catalog_prices(items, dry_run=False)
         self.assertEqual(real_res["updated_count"], 1)
         self.assertEqual(real_res["unchanged_count"], 1)
         
-        # Verify changes saved
+        # Verify changes saved including updated title
         self.product1.refresh_from_db()
+        self.assertEqual(self.product1.title, "Сыр Голландский Люкс 45%")
         self.assertEqual(self.product1.price_numeric, 480)
         self.assertEqual(self.product1.wholesale_price_numeric, 390)
         self.assertEqual(self.product1.wholesale_min_qty, "от 20 шт.")
-        # Product title MUST NOT be altered
-        self.assertEqual(self.product1.title, "Сыр Голландский 45%")
 
     def test_import_with_csv(self):
         from shop.price_manager import read_price_list_file, import_catalog_prices
+        from shop.models import Product
         
         csv_text = (
-            "Имя товара (нельзя редактировать);Цена для обычных пользователей (₽);Цена оптом (₽);Количество для покупки оптом\n"
-            "Сыр Голландский 45%;520;410;от 15 шт.\n"
-            "Несуществующий сыр;100;90;от 1 шт.\n"
+            "Наименование товара;Цена для обычных пользователей (₽);Цена оптом (₽);Количество для покупки оптом;ID товара\n"
+            f"Сыр Голландский Люкс 45%;520;410;от 15 шт.;{self.product1.id}\n"
+            "Новый экспериментальный сыр;600;500;от 5 шт.;\n"
+            "Сыр с несуществующим ID;100;90;от 1 шт.;999999\n"
         )
         csv_bytes = csv_text.encode("utf-8")
         items = read_price_list_file(csv_bytes, filename="prices.csv")
-        self.assertEqual(len(items), 2)
+        self.assertEqual(len(items), 3)
         
         res = import_catalog_prices(items, dry_run=False)
-        self.assertEqual(res["updated_count"], 1)
+        self.assertEqual(res["updated_count"], 2)
         self.assertEqual(res["error_count"], 1)
         
         self.product1.refresh_from_db()
+        self.assertEqual(self.product1.title, "Сыр Голландский Люкс 45%")
         self.assertEqual(self.product1.price_numeric, 520)
         self.assertEqual(self.product1.wholesale_price_numeric, 410)
         self.assertEqual(self.product1.wholesale_min_qty, "от 15 шт.")
+        
+        # Verify new product was created
+        new_prod = Product.objects.filter(title="Новый экспериментальный сыр").first()
+        self.assertIsNotNone(new_prod)
+        self.assertEqual(new_prod.price_numeric, 600)
+        self.assertEqual(new_prod.wholesale_price_numeric, 500)
 
     def test_admin_price_views(self):
         from django.core.files.uploadedfile import SimpleUploadedFile

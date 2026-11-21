@@ -44,14 +44,14 @@
   <!-- Instruction Cards Grid -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px;">
     <!-- Col 1 -->
-    <div style="background: var(--admin-card-bg, #1e293b); border: 1px solid var(--admin-border-color, #334155); border-radius: 10px; padding: 16px 18px; border-top: 3px solid #64748b;">
+    <div style="background: var(--admin-card-bg, #1e293b); border: 1px solid var(--admin-border-color, #334155); border-radius: 10px; padding: 16px 18px; border-top: 3px solid #6366f1;">
       <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--admin-text-title, #f8fafc); font-size: 0.95rem; margin-bottom: 6px;">
-        <span style="background: #e2e8f0; color: #334155; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">1</span>
-        Имя товаров
-        <span style="background: #fee2e2; color: #b91c1c; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: auto;">Защищено</span>
+        <span style="background: #6366f1; color: #ffffff; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800;">1</span>
+        Наименование товара
+        <span style="background: #ecfdf5; color: #047857; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: auto;">Редактируемое</span>
       </div>
       <p style="color: var(--admin-text-muted, #94a3b8); font-size: 0.82rem; margin: 0; line-height: 1.4;">
-        <strong>Нельзя редактировать.</strong> В Excel столбец заблокирован от случайных изменений. Используется для точной привязки цен к товару в каталоге.
+        <strong>Свободно редактируется.</strong> При наличии ID в строке название товара обновится в базе. При добавлении новой строки без ID создастся новый товар.
       </p>
     </div>
 
@@ -184,7 +184,7 @@
         <thead>
           <tr style="border-bottom: 2px solid var(--admin-border-color, #334155); color: var(--admin-text-muted, #94a3b8); text-align: left;">
             <th style="padding: 10px 12px; width: 45px;">№</th>
-            <th style="padding: 10px 12px;">Наименование товара (не редактируется)</th>
+            <th style="padding: 10px 12px;">Наименование товара</th>
             <th style="padding: 10px 12px; width: 170px;">Цена обычная</th>
             <th style="padding: 10px 12px; width: 170px;">Цена оптом</th>
             <th style="padding: 10px 12px; width: 190px;">Количество оптом</th>
@@ -193,14 +193,14 @@
         </thead>
         <tbody>
           {% for item in results.items %}
-          <tr style="border-bottom: 1px solid var(--admin-border-color, #334155); {% if item.status == 'updated' %}background: rgba(16, 185, 129, 0.04);{% elif item.status == 'error' %}background: rgba(239, 68, 68, 0.05);{% endif %}">
+          <tr style="border-bottom: 1px solid var(--admin-border-color, #334155); {% if item.status == 'updated' %}background: rgba(16, 185, 129, 0.04);{% elif item.status == 'created' %}background: rgba(59, 130, 246, 0.05);{% elif item.status == 'error' %}background: rgba(239, 68, 68, 0.05);{% endif %}">
             <td style="padding: 10px 12px; color: var(--admin-text-muted, #94a3b8); font-size: 0.8rem;">
               {{ item.row_num }}
             </td>
             <td style="padding: 10px 12px;">
               <strong style="color: var(--admin-text-title, #f8fafc);">{{ item.title }}</strong>
               {% if item.message %}
-              <div style="font-size: 0.75rem; color: {% if item.status == 'error' %}#ef4444{% elif item.status == 'updated' %}#10b981{% else %}#94a3b8{% endif %}; margin-top: 2px;">
+              <div style="font-size: 0.75rem; color: {% if item.status == 'error' %}#ef4444{% elif item.status == 'updated' %}#10b981{% elif item.status == 'created' %}#3b82f6{% else %}#94a3b8{% endif %}; margin-top: 2px;">
                 {{ item.message }}
               </div>
               {% endif %}
@@ -232,6 +232,10 @@
             <td style="padding: 10px 12px; text-align: center;">
               {% if item.status == 'updated' %}
                 <span style="background: #10b981; color: white; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">
+                  {{ item.status_label }}
+                </span>
+              {% elif item.status == 'created' %}
+                <span style="background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">
                   {{ item.status_label }}
                 </span>
               {% elif item.status == 'unchanged' %}
