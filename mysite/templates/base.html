@@ -42,6 +42,9 @@
     <meta name="twitter:title" content="{% block twitter_title %}{{ page_title|default:brand_name }}{% endblock %}">
     <meta name="twitter:description" content="{% block twitter_description %}{{ page_description|default:site_settings.seo_default_description }}{% endblock %}">
     <meta name="twitter:image" content="{% block twitter_image %}{{ site_og_image_url }}{% endblock %}">
+
+    <script src="https://kit.fontawesome.com/4be6eae629.js" crossorigin="anonymous"></script>
+
     {% endblock %}
 
     {% block extra_meta %}{% endblock %}
