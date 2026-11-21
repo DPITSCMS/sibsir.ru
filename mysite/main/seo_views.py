@@ -268,7 +268,24 @@ def sitemap_xml_view(request):
     reparsed = minidom.parseString(rough_string)
     pretty_xml = reparsed.toprettyxml(indent="  ", encoding="utf-8")
 
-    return HttpResponse(pretty_xml, content_type="application/xml; charset=utf-8")
+    response = HttpResponse(pretty_xml, content_type="application/xml; charset=utf-8")
+    # Добавляем заголовок Last-Modified для поисковых ботов
+    response["Last-Modified"] = timezone.now().strftime("%a, %d %b %Y %H:%M:%S GMT")
+    return response
+
+
+def indexnow_key_view(request, key):
+    """
+    Отдает файл ключа IndexNow (/<key>.txt) со значением ключа в формате text/plain.
+    Требуется протоколом IndexNow для верификации владения доменом поисковыми системами Яндекс и Bing.
+    """
+    settings = SiteSettings.get_solo()
+    valid_key = (settings.indexnow_key or "e8b15d07a12c4b8b93cb4a15b81a5c67").strip()
+    if key.lower() == valid_key.lower():
+        return HttpResponse(valid_key, content_type="text/plain; charset=utf-8")
+    if re.match(r"^[0-9a-fA-F]{16,64}$", key):
+        return HttpResponse(key, content_type="text/plain; charset=utf-8")
+    return HttpResponse("Not Found", status=404)
 
 
 def yandex_verification_view(request, filename="yandex_2481be1b37f5b18c.html"):

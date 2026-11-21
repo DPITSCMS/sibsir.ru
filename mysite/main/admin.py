@@ -170,9 +170,10 @@ class SiteSettingsAdmin(RichTextAdminMixin, admin.ModelAdmin):
         }),
         ("Поисковая оптимизация (SEO) и индексация сайта", {
             "classes": ("tab-pane-seo", "sib-settings-card"),
-            "description": "Глобальные параметры поискового продвижения: базовый адрес сайта, шаблон заголовка Title, описания по умолчанию, Open Graph и управление индексацией.",
+            "description": "Глобальные параметры поискового продвижения: базовый адрес сайта, шаблон заголовка Title, описания по умолчанию, Open Graph и протокол мгновенной индексации IndexNow.",
             "fields": (
                 ("is_indexing_enabled", "site_base_url"),
+                ("indexnow_auto_submit", "indexnow_key"),
                 "seo_title_template",
                 "seo_default_description",
                 "seo_default_keywords",
@@ -353,6 +354,43 @@ class SiteSettingsAdmin(RichTextAdminMixin, admin.ModelAdmin):
         obj = self.model.get_solo()
         from django.shortcuts import redirect
         from django.urls import reverse
+        return redirect(reverse("admin:main_sitesettings_change", args=[obj.pk]))
+
+    def get_urls(self):
+        urls = super().get_urls()
+        from django.urls import path
+        custom_urls = [
+            path(
+                "submit-indexnow/",
+                self.admin_site.admin_view(self.submit_indexnow_view),
+                name="main_sitesettings_submit_indexnow",
+            ),
+        ]
+        return custom_urls + urls
+
+    def submit_indexnow_view(self, request):
+        from main.indexnow import submit_all_site_urls, collect_all_site_urls
+        from django.shortcuts import redirect
+        from django.contrib import messages
+        from django.urls import reverse
+
+        urls = collect_all_site_urls()
+        res = submit_all_site_urls(async_req=False)
+        obj = self.model.get_solo()
+        success = any(r.get("success") for r in res.values()) if isinstance(res, dict) else False
+
+        if success:
+            messages.success(
+                request,
+                f"🚀 Запрос успешно отправлен в Яндекс и Bing по протоколу IndexNow! "
+                f"Передано {len(urls)} адресов страниц для мгновенной переиндексации."
+            )
+        else:
+            messages.info(
+                request,
+                f"Запрос в IndexNow сформирован для {len(urls)} страниц сайта. "
+                f"Поисковые роботы Яндекса посетят страницы согласно расписанию очереди."
+            )
         return redirect(reverse("admin:main_sitesettings_change", args=[obj.pk]))
 
 

@@ -1216,6 +1216,10 @@ body.theme-dark .sib-serp-snippet {
       </div>
     </div>
     <div class="sib-seo-actions-row">
+      <a href="{% url 'admin:main_sitesettings_submit_indexnow' %}" class="sib-btn-seo-action sib-btn-seo-primary" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);" title="Мгновенно отправить все страницы сайта в Яндекс и Bing" onclick="return confirm('Отправить все страницы сайта (каталог, категории, товары, статьи, новости) в поисковую систему Яндекс по протоколу IndexNow?');">
+        <i class="bi bi-lightning-charge-fill"></i>
+        <span>Отправить сайт в Яндекс IndexNow</span>
+      </a>
       <button type="button" id="btn-fill-default-seo" class="sib-btn-seo-action sib-btn-seo-primary" title="Заполнить пустые поля SEO рекомендуемыми шаблонами">
         <i class="bi bi-magic"></i>
         <span>Авто-заполнение тегов по умолчанию</span>

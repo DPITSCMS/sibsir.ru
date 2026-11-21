@@ -1,6 +1,27 @@
 {% extends 'base.html' %}
 {% load static captcha_tags %}
 
+{% block schema_extra %}
+<!-- Schema.org WebSite with SearchAction for Google & Yandex -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "{{ brand_name|default:'ТМ «Сибсыр»' }}",
+  "alternateName": ["Сибсыр", "Sibsir", "Сыроварня Сибсыр Омск"],
+  "url": "{{ site_base_url }}/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "{{ site_base_url }}/catalog/?search={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container py-3">
 

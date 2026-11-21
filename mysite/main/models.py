@@ -475,6 +475,20 @@ class SiteSettings(models.Model):
         help_text="Если выключено, robots.txt и метатеги запретят индексацию роботам (noindex, nofollow)"
     )
 
+    # IndexNow (Мгновенное оповещение Яндекс и Bing)
+    indexnow_key = models.CharField(
+        max_length=64,
+        default="e8b15d07a12c4b8b93cb4a15b81a5c67",
+        blank=True,
+        verbose_name="API-ключ IndexNow (Яндекс / Bing)",
+        help_text="Уникальный ключ для протокола IndexNow. Обеспечивает мгновенное уведомление Яндекса и Bing об обновлении страниц."
+    )
+    indexnow_auto_submit = models.BooleanField(
+        default=True,
+        verbose_name="Мгновенно уведомлять поисковики через IndexNow",
+        help_text="При добавлении или изменении товаров, новостей, статей и страниц автоматически отправлять ссылки в Яндекс IndexNow."
+    )
+
     # Вебмастер и веб-аналитика
     yandex_verification_code = models.CharField(
         max_length=100,
@@ -777,6 +791,8 @@ class SiteSettings(models.Model):
         return (
             "User-agent: *\n"
             "Allow: /\n"
+            "Allow: /static/\n"
+            "Allow: /media/\n"
             "Disallow: /admin/\n"
             "Disallow: /accounts/\n"
             "Disallow: /api/\n"
@@ -801,6 +817,8 @@ class SiteSettings(models.Model):
             "\n"
             "User-agent: Yandex\n"
             "Allow: /\n"
+            "Allow: /static/\n"
+            "Allow: /media/\n"
             "Disallow: /admin/\n"
             "Disallow: /accounts/\n"
             "Disallow: /api/\n"
@@ -822,7 +840,7 @@ class SiteSettings(models.Model):
             "Allow: /sitemap/\n"
             "Allow: /rss/\n"
             "Allow: /feed/\n"
-            "Clean-param: utm_source&utm_medium&utm_campaign&utm_term&utm_content&yclid&gclid&fbclid /catalog/\n"
+            "Clean-param: utm_source&utm_medium&utm_campaign&utm_term&utm_content&yclid&gclid&fbclid&_openstat /\n"
             "\n"
             f"Host: {clean_host}\n"
             f"Sitemap: {base_url}/sitemap.xml\n"

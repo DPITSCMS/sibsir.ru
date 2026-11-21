@@ -48,6 +48,27 @@
   ]
 }
 </script>
+{% if products %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "{{ page_title|default:'Каталог сыров и молочной продукции «Сибсыр»'|escapejs }}",
+  "url": "{{ canonical_url }}",
+  "numberOfItems": {{ products|length }},
+  "itemListElement": [
+    {% for prod in products %}
+    {
+      "@type": "ListItem",
+      "position": {{ forloop.counter }},
+      "name": "{{ prod.title|escapejs }}",
+      "url": "{{ site_base_url }}{{ prod.get_absolute_url }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endif %}
 {% endblock %}
 
 

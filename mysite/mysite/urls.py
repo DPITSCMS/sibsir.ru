@@ -14,6 +14,7 @@ from main.seo_views import (
     favicon_view,
     yandex_verification_view,
     google_verification_view,
+    indexnow_key_view,
 )
 from main.feeds import LatestEntriesFeed, NewsFeed, ArticlesFeed
 
@@ -22,6 +23,7 @@ urlpatterns = [
     path('robots.txt', robots_txt_view, name='robots_txt'),
     path('sitemap.xml', sitemap_xml_view, name='sitemap_xml'),
     path('sitemap/', sitemap_html_view, name='sitemap_html'),
+    re_path(r'^(?P<key>[0-9a-fA-F]{16,64})\.txt$', indexnow_key_view, name='indexnow_key_file'),
     path('rss/', LatestEntriesFeed(), name='rss_feed'),
     path('feed/', LatestEntriesFeed(), name='feed_alias'),
     path('rss/news/', NewsFeed(), name='news_rss_feed'),
