@@ -402,33 +402,7 @@
                     <span>Статистика и аналитика посещаемости</span>
                 </div>
                 <div class="footer-stat-banners-list d-flex flex-wrap align-items-center gap-2">
-
-                <!-- Yandex.Metrika informer -->
-<a href="https://metrika.yandex.ru/stat/?id=114170832&amp;from=informer" target="_blank" rel="nofollow">
-    <img src="https://metrika-informer.com/informer/114170832/3_0_535353FF_333333FF_1_pageviews"
-         style="width:88px; height:31px; border:0;"
-         alt="Яндекс.Метрика"
-         title="Яндекс.Метрика: данные за сегодня (просмотры, визиты и уникальные посетители)"
-        class="ym-advanced-informer" data-cid="114170832" data-lang="ru"/>
-</a>
-<!-- /Yandex.Metrika informer -->
-
-<!-- Yandex.Metrika counter -->
-<script type="text/javascript">
-    (function(m,e,t,r,i,k,a){
-        m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-        m[i].l=1*new Date();
-        for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-        k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-    })(window, document,'script','https://mc.webvisor.org/metrika/tag_ww.js?id=114170832', 'ym');
-
-    ym(114170832, 'init', {ssr:true, webvisor:true, trackHash:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
-</script>
-<noscript><div><img src="https://mc.yandex.ru/watch/114170832" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-<!-- /Yandex.Metrika counter -->
-
-
-                    {% for banner in footer_stat_banners %}
+                  {% for banner in footer_stat_banners %}
                         {% if banner.banner_type == 'HTML' %}
                             <div class="footer-stat-banner footer-stat-banner-code" title="{{ banner.name }}">
                                 {{ banner.html_code|safe }}
