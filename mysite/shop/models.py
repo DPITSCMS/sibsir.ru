@@ -1435,6 +1435,16 @@ class OrderItem(models.Model):
     def total(self):
         return self.quantity * self.price
 
+    def save(self, *args, **kwargs):
+        if self.product:
+            if not self.title:
+                self.title = self.product.title
+            if not self.pk and (self.price is None or self.price == Decimal("0.00")):
+                prod_price = self.product.effective_price_numeric or self.product.price_numeric
+                if prod_price:
+                    self.price = Decimal(str(prod_price))
+        super().save(*args, **kwargs)
+
 
 class Review(models.Model):
     product = models.ForeignKey(

@@ -566,6 +566,63 @@ fieldset.collapse details summary {
   vertical-align: middle !important;
 }
 
+.order-items-hint {
+  background: var(--admin-card-bg);
+  border-bottom: 1px solid var(--admin-border-subtle);
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--admin-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-items-hint i {
+  color: #10b981;
+  font-size: 14px;
+}
+
+.order-price-highlight {
+  transition: all 0.25s ease !important;
+  background-color: rgba(16, 185, 129, 0.18) !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+}
+
+#items-group .field-product select {
+  width: 100%;
+  min-width: 250px;
+  max-width: 360px;
+  font-weight: 600;
+  border-radius: 6px !important;
+}
+
+#items-group .field-title input {
+  width: 100%;
+  min-width: 200px;
+  border-radius: 6px !important;
+}
+
+#items-group .field-price input {
+  width: 120px;
+  font-weight: 700 !important;
+  color: #0284c7 !important;
+  border-radius: 6px !important;
+}
+
+#items-group .field-quantity input {
+  width: 75px;
+  text-align: center;
+  font-weight: 600;
+  border-radius: 6px !important;
+}
+
+#items-group .field-unit input {
+  width: 65px;
+  text-align: center;
+  border-radius: 6px !important;
+}
+
 /* Темная тема для кастомных компонентов */
 html[data-theme="dark"] .order-hero-banner {
   background: #151d30;
@@ -905,10 +962,215 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    // 3. Добавление иконки к блоку позиций
+    // 3. Добавление иконки и подсказки к блоку позиций
     var itemsH2 = document.querySelector("#items-group h2");
     if (itemsH2 && !itemsH2.querySelector("i")) {
         itemsH2.insertAdjacentHTML("afterbegin", '<i class="bi bi-basket2-fill" style="color: var(--admin-primary); margin-right: 6px;"></i> ');
+    }
+    var itemsBox = document.querySelector("#items-group");
+    if (itemsBox && !itemsBox.querySelector(".order-items-hint")) {
+        var h2 = itemsBox.querySelector("h2");
+        if (h2) {
+            h2.insertAdjacentHTML("afterend", 
+                '<div class="order-items-hint">' +
+                '<i class="bi bi-info-circle-fill"></i>' +
+                '<span><strong>Автоматическая цена:</strong> при выборе товара цена и наименование подставляются автоматически. Цену можно свободно отредактировать при необходимости.</span>' +
+                '</div>'
+            );
+        }
+    }
+
+    // 4. Справочник каталога товаров для мгновенной подстановки
+    var PRODUCTS_CATALOG = {{ products_catalog_json|default:"{}"|safe }};
+
+    function highlightField(el) {
+        if (!el) return;
+        el.classList.add("order-price-highlight");
+        setTimeout(function() {
+            el.classList.remove("order-price-highlight");
+        }, 1200);
+    }
+
+    function updateRowItemTotal(row) {
+        if (!row) return;
+        var priceInput = row.querySelector('input[name$="-price"]');
+        var qtyInput = row.querySelector('input[name$="-quantity"]');
+        var totalEl = row.querySelector('.field-item_total p') || row.querySelector('.field-item_total');
+        if (!totalEl) return;
+
+        var price = priceInput ? parseFloat(priceInput.value) : 0;
+        var qty = qtyInput ? parseFloat(qtyInput.value) : 0;
+
+        if (!isNaN(price) && !isNaN(qty) && qty > 0) {
+            var sum = price * qty;
+            var formatted = sum.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+            totalEl.innerHTML = '<strong style="color: var(--admin-text-title, #0f172a); font-size: 13px; white-space: nowrap;">' + formatted + '</strong>';
+        } else {
+            totalEl.innerHTML = '<span style="color: var(--admin-text-muted, #94a3b8); font-size: 12px;">0.00 ₽</span>';
+        }
+    }
+
+    function recalculateOrderTotalsLive() {
+        var rows = document.querySelectorAll('#items-group tbody tr.form-row');
+        var subtotal = 0;
+        var validRowsCount = 0;
+
+        rows.forEach(function(row) {
+            if (row.classList.contains('empty-form')) return;
+
+            var delBox = row.querySelector('input[name$="-DELETE"]');
+            if (delBox && delBox.checked) return;
+
+            var priceInput = row.querySelector('input[name$="-price"]');
+            var qtyInput = row.querySelector('input[name$="-quantity"]');
+            var prodSelect = row.querySelector('select[name$="-product"]');
+
+            if (priceInput && qtyInput) {
+                var price = parseFloat(priceInput.value) || 0;
+                var qty = parseFloat(qtyInput.value) || 0;
+                if (qty > 0 && (price > 0 || (prodSelect && prodSelect.value))) {
+                    subtotal += price * qty;
+                    validRowsCount++;
+                }
+            }
+        });
+
+        var subtotalInput = document.getElementById('id_subtotal_price');
+        var discountInput = document.getElementById('id_discount_amount');
+        var totalInput = document.getElementById('id_total_price');
+
+        var discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+        var total = Math.max(0, subtotal - discount);
+
+        if (subtotalInput && validRowsCount > 0) {
+            subtotalInput.value = subtotal.toFixed(2);
+        }
+        if (totalInput && validRowsCount > 0) {
+            totalInput.value = total.toFixed(2);
+        }
+
+        var heroTotal = document.querySelector('.order-hero-finance-val');
+        if (heroTotal && validRowsCount > 0) {
+            heroTotal.textContent = total.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+        }
+    }
+
+    function handleProductChange(selectEl) {
+        if (!selectEl) return;
+        var row = selectEl.closest("tr");
+        if (!row) return;
+
+        var productId = selectEl.value;
+        if (!productId) return;
+
+        var selectedOpt = selectEl.options[selectEl.selectedIndex];
+        var price = null;
+        var title = "";
+        var unit = "шт.";
+
+        // 1. Сначала пробуем взять из data-атрибутов option
+        if (selectedOpt) {
+            if (selectedOpt.dataset.price !== undefined && selectedOpt.dataset.price !== "") {
+                price = selectedOpt.dataset.price;
+            }
+            if (selectedOpt.dataset.title) {
+                title = selectedOpt.dataset.title;
+            }
+            if (selectedOpt.dataset.unit) {
+                unit = selectedOpt.dataset.unit;
+            }
+        }
+
+        // 2. Fallback из справочника PRODUCTS_CATALOG
+        if ((price === null || !title) && PRODUCTS_CATALOG && PRODUCTS_CATALOG[productId]) {
+            var item = PRODUCTS_CATALOG[productId];
+            if (price === null && item.price_formatted !== undefined) {
+                price = item.price_formatted;
+            }
+            if (!title && item.title) {
+                title = item.title;
+            }
+            if (item.unit) {
+                unit = item.unit;
+            }
+        }
+
+        // 3. Fallback из текста option (например "... (420 ₽)")
+        if (price === null && selectedOpt && selectedOpt.textContent) {
+            var match = selectedOpt.textContent.match(/\((\d+(?:[\.,]\d+)?)\s*₽\)/);
+            if (match) {
+                price = match[1].replace(',', '.');
+            }
+        }
+
+        var priceInput = row.querySelector('input[name$="-price"]');
+        var titleInput = row.querySelector('input[name$="-title"]');
+        var unitInput = row.querySelector('input[name$="-unit"]');
+        var qtyInput = row.querySelector('input[name$="-quantity"]');
+
+        // Автоподстановка цены: поле остается доступным для ручного редактирования
+        if (priceInput && price !== null) {
+            priceInput.value = parseFloat(price).toFixed(2);
+            highlightField(priceInput);
+        }
+
+        // Автоподстановка наименования товара
+        if (titleInput && title) {
+            if (!titleInput.value || titleInput.dataset.autoFilled === "true") {
+                titleInput.value = title;
+                titleInput.dataset.autoFilled = "true";
+                highlightField(titleInput);
+            }
+        }
+
+        // Автоподстановка единицы измерения
+        if (unitInput && !unitInput.value) {
+            unitInput.value = unit;
+        }
+
+        // Количество по умолчанию = 1
+        if (qtyInput && (!qtyInput.value || parseFloat(qtyInput.value) <= 0)) {
+            qtyInput.value = "1";
+        }
+
+        updateRowItemTotal(row);
+        recalculateOrderTotalsLive();
+    }
+
+    // Слушатели событий
+    document.addEventListener("change", function(e) {
+        if (e.target && e.target.matches('select[name^="items-"][name$="-product"]')) {
+            handleProductChange(e.target);
+        }
+        if (e.target && e.target.matches('input[name^="items-"][name$="-DELETE"]')) {
+            recalculateOrderTotalsLive();
+        }
+    });
+
+    document.addEventListener("input", function(e) {
+        if (e.target && (e.target.matches('input[name^="items-"][name$="-price"]') || e.target.matches('input[name^="items-"][name$="-quantity"]'))) {
+            updateRowItemTotal(e.target.closest("tr"));
+            recalculateOrderTotalsLive();
+        }
+        if (e.target && e.target.matches('#id_discount_amount')) {
+            recalculateOrderTotalsLive();
+        }
+        if (e.target && e.target.matches('input[name^="items-"][name$="-title"]')) {
+            delete e.target.dataset.autoFilled;
+        }
+    });
+
+    // Поддержка добавления строк через кнопку Django admin inlines
+    if (window.django && window.django.jQuery) {
+        window.django.jQuery(document).on('formset:added', function(event, $row, formsetName) {
+            if (formsetName === 'items') {
+                var row = $row[0];
+                var select = row.querySelector('select[name$="-product"]');
+                if (select && select.value) {
+                    handleProductChange(select);
+                }
+            }
+        });
     }
 });
 </script>

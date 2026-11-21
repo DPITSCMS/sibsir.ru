@@ -192,6 +192,42 @@ class OrderModelTest(TestCase):
     def test_order_item_total(self):
         self.assertEqual(self.item.total, Decimal("1000.00"))
 
+    def test_order_item_auto_populate_price_and_title(self):
+        prod = Product.objects.create(
+            title="Тестовый Сыр Моцарелла",
+            slug="test-mozzarella",
+            price_numeric=350,
+            price_display="350 ₽"
+        )
+        # Позиция без явного указания цены и наименования
+        item = OrderItem.objects.create(
+            order=self.order,
+            product=prod,
+            quantity=3
+        )
+        self.assertEqual(item.title, "Тестовый Сыр Моцарелла")
+        self.assertEqual(item.price, Decimal("350.00"))
+        self.assertEqual(item.total, Decimal("1050.00"))
+
+    def test_order_item_custom_editable_price(self):
+        prod = Product.objects.create(
+            title="Тестовый Сыр Чеддер",
+            slug="test-cheddar",
+            price_numeric=400,
+            price_display="400 ₽"
+        )
+        # Пользователь вручную отредактировал цену
+        item = OrderItem.objects.create(
+            order=self.order,
+            product=prod,
+            title="Чеддер особый",
+            quantity=2,
+            price=Decimal("320.50")
+        )
+        self.assertEqual(item.title, "Чеддер особый")
+        self.assertEqual(item.price, Decimal("320.50"))
+        self.assertEqual(item.total, Decimal("641.00"))
+
 
 class ReviewModelTest(TestCase):
     def setUp(self):

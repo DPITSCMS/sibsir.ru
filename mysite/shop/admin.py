@@ -1,3 +1,6 @@
+import json
+from decimal import Decimal
+from django import forms
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -494,17 +497,98 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
         queryset.update(discount_percent=0, old_price_numeric=0)
 
 
+class ProductSelectWithPrice(forms.Select):
+    """
+    Виджет выбора товара с автоматической подстановкой актуальной цены,
+    наименования и единицы измерения в data-атрибуты каждого <option>.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._products_cache = None
+
+    def get_products_map(self):
+        if self._products_cache is None:
+            self._products_cache = {
+                p.id: {
+                    "price": str(p.effective_price_numeric or p.price_numeric or "0"),
+                    "title": p.title,
+                    "unit": "шт.",
+                }
+                for p in Product.objects.all().only(
+                    "id", "title", "price_numeric", "old_price_numeric", "discount_percent"
+                )
+            }
+        return self._products_cache
+
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        opt = super().create_option(name, value, label, selected, index, subindex=subindex, attrs=attrs)
+        val = getattr(value, "value", value)
+        prod_map = self.get_products_map()
+        if val in prod_map:
+            p_data = prod_map[val]
+            opt["attrs"]["data-price"] = p_data["price"]
+            opt["attrs"]["data-title"] = p_data["title"]
+            opt["attrs"]["data-unit"] = p_data["unit"]
+        return opt
+
+
+class OrderItemForm(forms.ModelForm):
+    class Meta:
+        model = OrderItem
+        fields = ("product", "title", "unit", "quantity", "price")
+        widgets = {
+            "product": ProductSelectWithPrice(attrs={"class": "order-product-select", "style": "min-width: 250px;"}),
+            "title": forms.TextInput(attrs={"class": "order-title-input", "placeholder": "Наименование позиции"}),
+            "unit": forms.TextInput(attrs={"class": "order-unit-input", "style": "width: 70px; text-align: center;"}),
+            "quantity": forms.NumberInput(attrs={"class": "order-quantity-input", "style": "width: 80px; text-align: center;", "min": "1"}),
+            "price": forms.NumberInput(attrs={
+                "class": "order-price-input",
+                "style": "width: 120px; font-weight: 700; color: #0284c7;",
+                "step": "0.01",
+                "min": "0",
+                "title": "Цена подставляется автоматически при выборе товара и может быть изменена вручную",
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "title" in self.fields:
+            self.fields["title"].required = False
+        if "price" in self.fields:
+            self.fields["price"].required = False
+            self.fields["price"].help_text = "Подставляется автоматически при выборе товара, редактируется"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        product = cleaned_data.get("product")
+        title = cleaned_data.get("title")
+        price = cleaned_data.get("price")
+        if product:
+            if not title:
+                cleaned_data["title"] = product.title
+            if price is None:
+                prod_price = product.effective_price_numeric or product.price_numeric or 0
+                cleaned_data["price"] = Decimal(str(prod_price))
+        return cleaned_data
+
+
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
+    form = OrderItemForm
     extra = 0
     fields = ("product", "title", "unit", "quantity", "price", "item_total")
     readonly_fields = ("item_total",)
 
+    def get_extra(self, request, obj=None, **kwargs):
+        if obj and obj.items.exists():
+            return 0
+        return 1
+
     def item_total(self, obj):
         if obj.id:
             val = f"{obj.total:,.2f} ₽".replace(",", " ")
-            return format_html('<strong style="color: #0f172a; font-size: 13px; white-space: nowrap;">{}</strong>', val)
-        return "—"
+            return format_html('<strong style="color: var(--admin-text-title, #0f172a); font-size: 13px; white-space: nowrap;">{}</strong>', val)
+        return mark_safe('<span style="color: var(--admin-text-muted, #94a3b8); font-size: 12px;">0.00 ₽</span>')
     item_total.short_description = "Сумма"
 
 
@@ -849,6 +933,37 @@ class OrderAdmin(admin.ModelAdmin):
     @admin.action(description="Отменить выбранные заказы")
     def mark_cancelled(self, request, queryset):
         queryset.update(status="cancelled")
+
+    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        products_data = {}
+        for p in Product.objects.all():
+            price = p.effective_price_numeric or p.price_numeric or 0
+            products_data[str(p.id)] = {
+                "id": p.id,
+                "title": p.title,
+                "price": float(price),
+                "price_formatted": f"{price:.2f}",
+                "unit": "шт.",
+            }
+        extra_context["products_catalog_json"] = json.dumps(products_data, ensure_ascii=False)
+        return super().changeform_view(request, object_id, form_url, extra_context=extra_context)
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        order = form.instance
+        items = list(order.items.all())
+        if items:
+            subtotal = sum(i.quantity * i.price for i in items)
+            discount = order.discount_amount or Decimal("0.00")
+            total = max(Decimal("0.00"), subtotal - discount)
+            update_data = {
+                "subtotal_price": subtotal,
+                "total_price": total,
+            }
+            if not order.product_choice:
+                update_data["product_choice"] = "; ".join(f"{it.title} ({it.quantity} {it.unit})" for it in items[:5])
+            Order.objects.filter(pk=order.pk).update(**update_data)
 
 
 @admin.register(Review)
