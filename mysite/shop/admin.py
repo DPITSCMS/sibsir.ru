@@ -512,6 +512,8 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
 
     def import_price_list_view(self, request):
         """Страница загрузки и импорта прайс-листа."""
+        import base64
+
         context = {
             **self.admin_site.each_context(request),
             "opts": self.model._meta,
@@ -521,15 +523,39 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
 
         if request.method == "POST":
             excel_file = request.FILES.get("price_file")
-            dry_run = request.POST.get("dry_run") == "1"
+            apply_pending = request.POST.get("apply_pending") == "1"
+            dry_run = (request.POST.get("dry_run") == "1") and not apply_pending
 
-            if not excel_file:
+            file_bytes = None
+            filename = ""
+
+            if excel_file:
+                file_bytes = excel_file.read()
+                filename = excel_file.name
+                # Сохраняем в сессию на случай, если пользователь запускает тестовый режим
+                try:
+                    request.session["pending_price_file"] = base64.b64encode(file_bytes).decode("ascii")
+                    request.session["pending_price_filename"] = filename
+                    request.session.modified = True
+                except Exception as e:
+                    logger.warning("Не удалось сохранить файл в сессию: %s", e)
+            elif apply_pending or (not dry_run and request.session.get("pending_price_file")):
+                # Применение ранее проверенного файла из сессии
+                cached_b64 = request.session.get("pending_price_file")
+                if cached_b64:
+                    try:
+                        file_bytes = base64.b64decode(cached_b64)
+                        filename = request.session.get("pending_price_filename", "Sibsir_Catalog_Prices.xlsx")
+                        dry_run = False
+                    except Exception as e:
+                        logger.error("Ошибка декодирования файла из сессии: %s", e)
+
+            if not file_bytes:
                 messages.error(request, "Пожалуйста, выберите файл прайс-листа (.xlsx или .csv).")
                 return render(request, "admin/shop/product/import_price_list.html", context)
 
             try:
-                file_bytes = excel_file.read()
-                items = read_price_list_file(file_bytes, filename=excel_file.name)
+                items = read_price_list_file(file_bytes, filename=filename)
 
                 if not items:
                     messages.warning(request, "В файле не найдено строк с товарами для импорта.")
@@ -537,19 +563,26 @@ class ProductAdmin(DragDropReorderMixin, RichTextAdminMixin, admin.ModelAdmin):
 
                 results = import_catalog_prices(items, dry_run=dry_run)
                 context["results"] = results
-                context["file_name"] = excel_file.name
+                context["file_name"] = filename
 
                 if dry_run:
+                    context["has_pending"] = True
                     messages.info(
                         request,
                         f"Тестовый запуск: обработано строк {results['total_rows']}. "
-                        f"Готово к обновлению: {results['updated_count']} товаров. Изменения НЕ сохранены в базу."
+                        f"Готово к обновлению / созданию: {results['updated_count']} товаров. Изменения НЕ сохранены в базу."
                     )
                 else:
+                    # Очищаем сессию после реального применения
+                    request.session.pop("pending_price_file", None)
+                    request.session.pop("pending_price_filename", None)
+                    request.session.modified = True
+                    context["has_pending"] = False
+
                     if results["updated_count"] > 0:
                         messages.success(
                             request,
-                            f"Прайс-лист успешно импортирован! Обновлено товаров: {results['updated_count']} из {results['total_rows']}."
+                            f"Прайс-лист успешно применен! Обновлено / создано товаров: {results['updated_count']} из {results['total_rows']}."
                         )
                     else:
                         messages.warning(

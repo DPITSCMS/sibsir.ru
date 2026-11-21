@@ -474,10 +474,23 @@ class PriceManagerCatalogTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Экспорт и импорт прайс-листа")
         
-        # Import view POST with generated xlsx
+        # Change price in DB so exported file has a difference when re-imported
+        self.product1.price_numeric = 999
+        self.product1.save()
         xlsx_bytes, filename = export_catalog_prices_xlsx()
+        self.product1.price_numeric = 400
+        self.product1.save()
+        
+        # Import view POST with generated xlsx (test dry run)
         upload = SimpleUploadedFile("prices.xlsx", xlsx_bytes, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         resp = self.client.post(import_url, {"price_file": upload, "dry_run": "1"})
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Тестовый запуск")
+        
+        # Test applying from pending session
+        resp = self.client.post(import_url, {"apply_pending": "1"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "успешно применен")
+        self.product1.refresh_from_db()
+        self.assertEqual(self.product1.price_numeric, 999)
 

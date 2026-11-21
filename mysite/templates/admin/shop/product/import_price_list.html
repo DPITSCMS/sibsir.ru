@@ -109,13 +109,13 @@
         <div id="file-chosen-name" style="margin-top: 14px; font-weight: 700; color: #ff8400; font-size: 0.95rem; display: none;"></div>
       </div>
 
-      <input type="file" name="price_file" id="price_file_input" accept=".xlsx,.csv" style="display: none;" onchange="handleFileSelect(this);" required />
+      <input type="file" name="price_file" id="price_file_input" accept=".xlsx,.csv" style="display: none;" onchange="handleFileSelect(this);" />
 
       <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
         <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
-          <input type="checkbox" name="dry_run" value="1" id="dry_run_checkbox" checked style="width: 18px; height: 18px; accent-color: #ff8400;" />
+          <input type="checkbox" name="dry_run" value="1" id="dry_run_checkbox" onchange="updateSubmitButtonState();" style="width: 18px; height: 18px; accent-color: #ff8400;" />
           <span style="color: var(--admin-text-main, #e2e8f0); font-size: 0.9rem;">
-            <strong>Предварительная проверка (Тестовый запуск)</strong> — проверить файл и показать изменения без сохранения в базу
+            <strong>Предварительная проверка (Тестовый запуск)</strong> — проверить файл без сохранения в базу
           </span>
         </label>
 
@@ -123,8 +123,8 @@
           <a href="{% url 'admin:shop_product_changelist' %}" class="button" style="background: transparent; border: 1px solid var(--admin-border-color, #475569); color: var(--admin-text-muted, #94a3b8); padding: 9px 18px; border-radius: 6px; font-size: 0.88rem; text-decoration: none;">
             Отмена
           </a>
-          <button type="submit" class="button" style="background: linear-gradient(135deg, #ff8400, #ea580c); color: white; font-weight: 700; padding: 10px 24px; border-radius: 6px; font-size: 0.92rem; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(255, 132, 0, 0.35);">
-            <i class="bi bi-check2-circle"></i> Загрузить и обработать
+          <button type="submit" id="submit-btn" class="button" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; padding: 10px 24px; border-radius: 6px; font-size: 0.92rem; border: none; cursor: pointer; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);">
+            <i class="bi bi-cloud-arrow-up-fill"></i> Применить прайс-лист в каталог
           </button>
         </div>
       </div>
@@ -141,7 +141,7 @@
         </h2>
         <div style="font-size: 0.85rem; color: var(--admin-text-muted, #94a3b8); margin-top: 4px;">
           {% if results.dry_run %}
-            <span style="color: #f59e0b; font-weight: 700;">[Тестовый запуск]</span> Данные не были сохранены в базу. Если результат корректен, снимите галочку «Предварительная проверка» и загрузите снова.
+            <span style="color: #f59e0b; font-weight: 700;">[Тестовый запуск]</span> Данные проверены и готовы к записи. Нажмите кнопку справа «Применить изменения в базу данных».
           {% else %}
             <span style="color: #10b981; font-weight: 700;">[Успешно применено]</span> Изменения записаны в базу данных каталога.
           {% endif %}
@@ -149,9 +149,13 @@
       </div>
 
       {% if results.dry_run and results.updated_count > 0 %}
-      <button onclick="applyForReal();" class="button" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; padding: 8px 18px; border-radius: 6px; font-size: 0.88rem; border: none; cursor: pointer;">
-        <i class="bi bi-save-fill"></i> Применить изменения в базу данных
-      </button>
+      <form method="post" id="apply-pending-form" style="margin: 0; display: inline;">
+        {% csrf_token %}
+        <input type="hidden" name="apply_pending" value="1" />
+        <button type="submit" class="button" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; padding: 10px 22px; border-radius: 6px; font-size: 0.92rem; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 12px rgba(16, 185, 129, 0.45);">
+          <i class="bi bi-check-circle-fill"></i> Применить изменения в базу данных
+        </button>
+      </form>
       {% endif %}
     </div>
 
@@ -295,10 +299,29 @@ dropZone.addEventListener('drop', (e) => {
   }
 });
 
+function updateSubmitButtonState() {
+  const isDry = document.getElementById('dry_run_checkbox').checked;
+  const btn = document.getElementById('submit-btn');
+  if (isDry) {
+    btn.style.background = 'linear-gradient(135deg, #ff8400, #ea580c)';
+    btn.style.boxShadow = '0 2px 8px rgba(255, 132, 0, 0.35)';
+    btn.innerHTML = '<i class="bi bi-search"></i> Проверить файл без сохранения';
+  } else {
+    btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    btn.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.35)';
+    btn.innerHTML = '<i class="bi bi-cloud-arrow-up-fill"></i> Применить прайс-лист в каталог';
+  }
+}
+
 function applyForReal() {
-  const dryRunBox = document.getElementById('dry_run_checkbox');
-  dryRunBox.checked = false;
-  document.getElementById('price-import-form').submit();
+  const form = document.getElementById('apply-pending-form');
+  if (form) {
+    form.submit();
+  } else {
+    const dryRunBox = document.getElementById('dry_run_checkbox');
+    if (dryRunBox) dryRunBox.checked = false;
+    document.getElementById('price-import-form').submit();
+  }
 }
 </script>
 {% endblock %}
