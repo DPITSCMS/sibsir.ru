@@ -9,8 +9,10 @@ urlpatterns = [
     # Управление резервными копиями и деплоем (только суперпользователи)
     path('admin-backups/', admin_backup_views.admin_backup_dashboard, name='admin_backup_dashboard'),
     path('admin-backups/create/', admin_backup_views.admin_backup_create, name='admin_backup_create'),
+    path('admin-backups/inspect/<str:filename>/', admin_backup_views.admin_backup_inspect, name='admin_backup_inspect'),
     path('admin-backups/download/<str:filename>/', admin_backup_views.admin_backup_download, name='admin_backup_download'),
     path('admin-backups/restore/', admin_backup_views.admin_backup_restore, name='admin_backup_restore'),
+    path('admin-backups/cleanup/', admin_backup_views.admin_backup_cleanup, name='admin_backup_cleanup'),
     path('admin-backups/delete/<str:filename>/', admin_backup_views.admin_backup_delete, name='admin_backup_delete'),
 
     path('', views.index, name='index'),

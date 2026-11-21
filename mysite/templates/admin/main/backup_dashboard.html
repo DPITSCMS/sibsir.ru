@@ -1,35 +1,53 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 
-{% block title %}Резервное копирование и деплой | {{ site_title|default:_('Django site admin') }}{% endblock %}
+{% block title %}Резервное копирование и система восстановления | {{ site_title|default:_('Django site admin') }}{% endblock %}
 
 {% block content %}
 <div class="sib-backup-container">
 
-    <!-- Заголовок и хлебные крошки -->
+    <!-- Заголовок и верхняя панель быстрых действий -->
     <div class="sib-backup-header">
         <div class="sib-backup-title-wrap">
-            <div class="sib-backup-badge"><i class="bi bi-shield-check"></i> Центр безопасности данных</div>
+            <div class="sib-backup-badge"><i class="bi bi-shield-check"></i> Центр безопасности данных 2.0</div>
             <h1 class="sib-backup-title">Резервное копирование и Восстановление данных</h1>
             <p class="sib-backup-subtitle">
-                Создание полных и выборочных архивов базы данных и фотографий каталога (ZIP), восстановление и перенос данных для чистого деплоя на сервер.
+                Высокоэффективное резервное копирование каталога, заказов, новостей и фотографий (адаптивное сжатие, снимки SQLite, SHA-256), система глубокой инспекции архивов и безопасное восстановление с защитой от сбоев.
             </p>
         </div>
         <div class="sib-backup-actions">
+            <!-- Быстрый полный бэкап одной кнопкой -->
+            <form action="{% url 'main:admin_backup_create' %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="backup_type" value="full">
+                <button type="submit" class="sib-btn sib-btn-primary" title="Создать полный архив: все разделы базы данных + все медиафайлы">
+                    <i class="bi bi-cloud-arrow-down-fill"></i> Полный бэкап
+                </button>
+            </form>
+
+            <!-- Быстрый дамп БД одной кнопкой -->
+            <form action="{% url 'main:admin_backup_create' %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="backup_type" value="quick_db">
+                <button type="submit" class="sib-btn sib-btn-secondary" title="Мгновенный бэкап: только база данных без медиа">
+                    <i class="bi bi-lightning-charge-fill"></i> Быстрый дамп БД
+                </button>
+            </form>
+
             <a href="{% url 'admin:index' %}" class="sib-btn sib-btn-outline">
-                <i class="bi bi-arrow-left"></i> Назад в дашборд
+                <i class="bi bi-arrow-left"></i> В дашборд
             </a>
         </div>
     </div>
 
-    <!-- Карточки текущего состояния системы -->
+    <!-- Карточки оперативной статистики системы -->
     <div class="sib-stats-grid">
         <div class="sib-stat-card card-catalog">
             <div class="sib-stat-icon"><i class="bi bi-basket2-fill"></i></div>
             <div class="sib-stat-content">
                 <span class="sib-stat-num">{{ system_stats.products_count }}</span>
                 <span class="sib-stat-label">Товаров в каталоге</span>
-                <span class="sib-stat-desc">{{ system_stats.categories_count }} категорий, {{ system_stats.promotions_count }} акции</span>
+                <span class="sib-stat-desc">{{ system_stats.categories_count }} категорий, {{ system_stats.promotions_count }} акций</span>
             </div>
         </div>
 
@@ -56,40 +74,91 @@
             <div class="sib-stat-content">
                 <span class="sib-stat-num">{{ system_stats.users_count }}</span>
                 <span class="sib-stat-label">Клиентов и аккаунтов</span>
-                <span class="sib-stat-desc">{{ system_stats.legal_profiles_count }} юрлиц / ИП, {{ system_stats.callbacks_count }} заявок</span>
+                <span class="sib-stat-desc">{{ system_stats.legal_profiles_count }} юрлиц, {{ system_stats.callbacks_count }} звонков</span>
             </div>
         </div>
 
-        <div class="sib-stat-card card-articles">
-            <div class="sib-stat-icon"><i class="bi bi-journal-bookmark-fill"></i></div>
+        <div class="sib-stat-card card-news">
+            <div class="sib-stat-icon"><i class="bi bi-newspaper"></i></div>
             <div class="sib-stat-content">
-                <span class="sib-stat-num">{{ system_stats.articles_count }}</span>
-                <span class="sib-stat-label">Статей блога</span>
-                <span class="sib-stat-desc">Советы сыроделов и публикации</span>
+                <span class="sib-stat-num">{{ system_stats.news_count|default:0 }}</span>
+                <span class="sib-stat-label">Новостей сыроварни</span>
+                <span class="sib-stat-desc">{{ system_stats.articles_count }} статей, {{ system_stats.pages_count }} CMS страниц</span>
+            </div>
+        </div>
+
+        <div class="sib-stat-card card-disk">
+            <div class="sib-stat-icon"><i class="bi bi-hdd-fill"></i></div>
+            <div class="sib-stat-content">
+                <span class="sib-stat-num">{{ backups|length }}</span>
+                <span class="sib-stat-label">Архивов в хранилище</span>
+                <span class="sib-stat-desc">Свободно: <strong>{{ system_stats.disk_free_mb }} MB</strong></span>
             </div>
         </div>
     </div>
 
-    <!-- Две колонки: Создание бэкапа и Восстановление -->
+    <!-- Блок автоматических точек отката (Safety Points) -->
+    {% if safety_backups %}
+    <div class="sib-safety-banner">
+        <div class="sib-safety-icon"><i class="bi bi-shield-lock-fill"></i></div>
+        <div class="sib-safety-content">
+            <div class="sib-safety-title">
+                Доступны автоматические точки отката ({{ safety_backups|length }})
+            </div>
+            <div class="sib-safety-text">
+                Перед выполнением каждого восстановления система сохраняет исходное состояние базы данных. В случае необходимости вы можете мгновенно вернуть данные:
+            </div>
+            <div class="sib-safety-list">
+                {% for sb in safety_backups|slice:":3" %}
+                <div class="sib-safety-item">
+                    <span class="sib-safety-name"><i class="bi bi-arrow-counterclockwise"></i> {{ sb.filename }}</span>
+                    <span class="sib-safety-date">{{ sb.mtime|date:"d.m.Y H:i:s"|default:sb.created_at }}</span>
+                    <form action="{% url 'main:admin_backup_restore' %}" method="post" style="display:inline;" onsubmit="return confirm('Откатить состояние базы данных к точке {{ sb.filename }}?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="server_filename" value="{{ sb.filename }}">
+                        <input type="hidden" name="mode" value="clean">
+                        <input type="hidden" name="restore_media" value="0">
+                        <input type="hidden" name="create_safety_backup" value="1">
+                        <button type="submit" class="sib-safety-btn">
+                            <i class="bi bi-clock-history"></i> Откатить к этой точке
+                        </button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Две колонки: Создание бэкапа и Восстановление данных -->
     <div class="sib-grid-2cols">
         <!-- БЛОК 1: Создание резервной копии -->
         <div class="sib-panel">
             <div class="sib-panel-head">
                 <div class="sib-panel-icon emerald"><i class="bi bi-cloud-arrow-down-fill"></i></div>
                 <div>
-                    <h2 class="sib-panel-title">Создание новой резервной копии</h2>
-                    <p class="sib-panel-desc">Сформировать архив с данными и медиафайлами для сохранения или переноса на сервер</p>
+                    <h2 class="sib-panel-title">Создание резервной копии</h2>
+                    <p class="sib-panel-desc">Сформировать архив с данными и медиафайлами (адаптивное быстрое сжатие)</p>
                 </div>
             </div>
 
             <form action="{% url 'main:admin_backup_create' %}" method="post" class="sib-form">
                 {% csrf_token %}
+                <input type="hidden" name="backup_type" value="custom">
+
                 <div class="sib-form-group">
-                    <label class="sib-label">Выберите разделы для включения в резервную копию:</label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label class="sib-label" style="margin-bottom:0;">Выберите разделы для включения в архив:</label>
+                        <div class="sib-toggle-all-btns">
+                            <button type="button" class="sib-link-btn" onclick="toggleAllCheckboxes('backup_section_check', true)">Выбрать все</button>
+                            <span class="text-muted">•</span>
+                            <button type="button" class="sib-link-btn" onclick="toggleAllCheckboxes('backup_section_check', false)">Снять все</button>
+                        </div>
+                    </div>
                     <div class="sib-checkbox-list">
                         {% for sec_k, sec_data in sections.items %}
                         <label class="sib-checkbox-card">
-                            <input type="checkbox" name="sections" value="{{ sec_k }}" checked>
+                            <input type="checkbox" name="sections" value="{{ sec_k }}" checked class="backup_section_check">
                             <span class="sib-custom-check"></span>
                             <div class="sib-checkbox-text">
                                 <strong>{{ sec_data.title }}</strong>
@@ -105,15 +174,15 @@
                         <input type="checkbox" name="include_media" value="1" checked id="includeMediaCheck">
                         <span class="sib-custom-check"></span>
                         <div class="sib-checkbox-text">
-                            <strong>Включить фотографии товаров и медиафайлы ({{ system_stats.media_total_mb }} MB)</strong>
-                            <small>Если отключить, будет сохранен легкий дамп только базы данных без картинок</small>
+                            <strong>Включить фотографии товаров, новостей и медиафайлы ({{ system_stats.media_total_mb }} MB)</strong>
+                            <small>Благодаря адаптивному хранению ZIP_STORED упаковка изображений выполняется мгновенно без перегрузки процессора</small>
                         </div>
                     </label>
                 </div>
 
                 <div class="sib-form-group">
                     <label for="id_description" class="sib-label">Примечание к бэкапу (необязательно):</label>
-                    <input type="text" name="description" id="id_description" class="sib-input" placeholder="Например: Перед деплоем на Timeweb, обновление каталога">
+                    <input type="text" name="description" id="id_description" class="sib-input" placeholder="Например: Перед деплоем на Timeweb, обновление цен или каталога">
                 </div>
 
                 <div class="sib-form-actions">
@@ -132,62 +201,96 @@
             <div class="sib-panel-head">
                 <div class="sib-panel-icon amber"><i class="bi bi-cloud-arrow-up-fill"></i></div>
                 <div>
-                    <h2 class="sib-panel-title">Восстановление данных</h2>
-                    <p class="sib-panel-desc">Загрузка данных и фотографий из архива .ZIP (при переносе или восстановлении)</p>
+                    <h2 class="sib-panel-title">Система восстановления данных</h2>
+                    <p class="sib-panel-desc">Развертывание сайта, импорт каталога и фото с контролем безопасности</p>
                 </div>
             </div>
 
             <form action="{% url 'main:admin_backup_restore' %}" method="post" enctype="multipart/form-data" class="sib-form" id="restoreForm">
                 {% csrf_token %}
                 <div class="sib-form-group">
-                    <label class="sib-label">Источник архива:</label>
+                    <label class="sib-label">Источник резервной копии:</label>
                     <div class="sib-restore-sources">
                         <label class="sib-radio-tab">
-                            <input type="radio" name="source_type" value="file" checked onclick="toggleRestoreSource('file')">
-                            <span><i class="bi bi-file-earmark-arrow-up"></i> Загрузить файл с компьютера</span>
+                            <input type="radio" name="source_type" value="server" checked onclick="toggleRestoreSource('server')">
+                            <span><i class="bi bi-hdd-network"></i> Выбрать архив на сервере</span>
                         </label>
                         <label class="sib-radio-tab">
-                            <input type="radio" name="source_type" value="server" onclick="toggleRestoreSource('server')">
-                            <span><i class="bi bi-hdd-network"></i> Выбрать архив с сервера</span>
+                            <input type="radio" name="source_type" value="file" onclick="toggleRestoreSource('file')">
+                            <span><i class="bi bi-file-earmark-arrow-up"></i> Загрузить файл с ПК</span>
                         </label>
                     </div>
                 </div>
 
-                <div id="sourceUploadBlock" class="sib-form-group">
-                    <label class="sib-label" for="id_backup_file">Выберите файл архива (.zip):</label>
-                    <input type="file" name="backup_file" id="id_backup_file" accept=".zip" class="sib-file-input">
+                <div id="sourceServerBlock" class="sib-form-group">
+                    <label class="sib-label" for="id_server_filename">Выберите имеющийся архив на сервере:</label>
+                    <div style="display:flex; gap:8px;">
+                        <select name="server_filename" id="id_server_filename" class="sib-select" onchange="onServerFileSelected()">
+                            <option value="">-- Выберите резервную копию --</option>
+                            {% for b in backups %}
+                            <option value="{{ b.filename }}">
+                                {% if b.is_safety_point %}🛡️ [ТОЧКА ОТКАТА] {% endif %}{{ b.filename }} ({{ b.archive_size_mb }} MB)
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="button" class="sib-btn sib-btn-outline" id="quickInspectBtn" onclick="inspectSelectedBackup()" title="Провести глубокий аудит архива до применения">
+                            <i class="bi bi-search"></i> Аудит
+                        </button>
+                    </div>
                 </div>
 
-                <div id="sourceServerBlock" class="sib-form-group" style="display:none;">
-                    <label class="sib-label" for="id_server_filename">Выберите имеющийся архив на сервере:</label>
-                    <select name="server_filename" id="id_server_filename" class="sib-select">
-                        <option value="">-- Выберите бэкап --</option>
-                        {% for b in backups %}
-                        <option value="{{ b.filename }}">
-                            {{ b.filename }} ({{ b.archive_size_mb }} MB, {{ b.created_at|default:b.mtime }})
-                        </option>
-                        {% endfor %}
-                    </select>
+                <div id="sourceUploadBlock" class="sib-form-group" style="display:none;">
+                    <label class="sib-label" for="id_backup_file">Выберите файл архива (.zip):</label>
+                    <input type="file" name="backup_file" id="id_backup_file" accept=".zip" class="sib-file-input">
+                    <small class="text-muted" style="display:block; margin-top:4px;">Поддерживаются архивы Сибсыр версии 1.0 и 2.0</small>
+                </div>
+
+                <!-- Выбор режима восстановления -->
+                <div class="sib-form-group">
+                    <label class="sib-label">Режим восстановления:</label>
+                    <div class="sib-mode-cards">
+                        <label class="sib-mode-option">
+                            <input type="radio" name="mode" value="clean" checked>
+                            <div class="sib-mode-box">
+                                <div class="sib-mode-title"><i class="bi bi-stars"></i> Чистый деплой (Рекомендуется)</div>
+                                <div class="sib-mode-desc">Очищает выбранные таблицы и накатывает данные без дубликатов и конфликтов ID. Администраторы сайта (is_superuser) гарантированно сохраняются.</div>
+                            </div>
+                        </label>
+                        <label class="sib-mode-option">
+                            <input type="radio" name="mode" value="merge">
+                            <div class="sib-mode-box">
+                                <div class="sib-mode-title"><i class="bi bi-arrow-repeat"></i> Слияние и обновление</div>
+                                <div class="sib-mode-desc">Обновляет существующие записи по ключу и добавляет новые. Существующие данные не удаляются.</div>
+                            </div>
+                        </label>
+                        <label class="sib-mode-option">
+                            <input type="radio" name="mode" value="snapshot">
+                            <div class="sib-mode-box">
+                                <div class="sib-mode-title"><i class="bi bi-database-fill-gear"></i> Прямой снимок SQLite</div>
+                                <div class="sib-mode-desc">Мгновенное побайтовое восстановление снимка SQLite из архива (при его наличии).</div>
+                            </div>
+                        </label>
+                    </div>
                 </div>
 
                 <div class="sib-form-group">
                     <label class="sib-checkbox-card">
-                        <input type="checkbox" name="restore_media" value="1" checked>
+                        <input type="checkbox" name="create_safety_backup" value="1" checked id="createSafetyCheck">
                         <span class="sib-custom-check"></span>
                         <div class="sib-checkbox-text">
-                            <strong>Распаковать и обновить фотографии товаров и статей</strong>
-                            <small>Картинки будут скопированы в папку media/ с сохранением структуры</small>
+                            <strong>Создать автоматическую точку отката перед восстановлением</strong>
+                            <small>Гарантирует 100% безопасность: исходное состояние БД будет сохранено в отдельный архив, к которому можно вернуться</small>
                         </div>
                     </label>
                 </div>
 
                 <div class="sib-form-group">
-                    <label class="sib-checkbox-card danger-card">
-                        <input type="checkbox" name="clear_tables" value="1" id="clearTablesCheck">
-                        <span class="sib-custom-check danger"></span>
+                    <label class="sib-checkbox-card">
+                        <input type="checkbox" name="restore_media" value="1" checked id="restoreMediaCheck">
+                        <span class="sib-custom-check"></span>
                         <div class="sib-checkbox-text">
-                            <strong class="text-danger">Очистить существующие таблицы перед импортом (Режим чистого деплоя)</strong>
-                            <small>Полная замена каталога, заказов и клиентов. Администраторы сайта (is_superuser) сохраняются.</small>
+                            <strong>Распаковать фотографии товаров, новостей и статей</strong>
+                            <small>Картинки будут извлечены в media/ с проверкой безопасности путей (защита Path Traversal)</small>
                         </div>
                     </label>
                 </div>
@@ -209,6 +312,15 @@
                 <h2 class="sib-panel-title">Хранилище резервных копий на сервере</h2>
                 <p class="sib-panel-desc">Директория: <code>{{ backup_dir }}</code> (найдено {{ backups|length }} архивов)</p>
             </div>
+            <div>
+                <form action="{% url 'main:admin_backup_cleanup' %}" method="post" style="display:inline;" onsubmit="return confirm('Очистить устаревшие архивы, сохранив последние 10 регулярных бэкапов и 5 точек отката?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="keep_count" value="10">
+                    <button type="submit" class="sib-btn sib-btn-outline" title="Автоматическая ротация: удалить устаревшие бэкапы">
+                        <i class="bi bi-brush"></i> Очистить старые
+                    </button>
+                </form>
+            </div>
         </div>
 
         {% if backups %}
@@ -216,21 +328,29 @@
             <table class="sib-table">
                 <thead>
                     <tr>
-                        <th>Имя архива</th>
+                        <th>Имя архива и описание</th>
                         <th>Дата создания</th>
                         <th>Размер</th>
-                        <th>Содержимое</th>
+                        <th>Состав объектов</th>
                         <th>Действия</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for b in backups %}
-                    <tr>
+                    <tr class="{% if b.is_safety_point %}row-safety{% endif %}">
                         <td>
                             <div class="sib-file-row">
-                                <i class="bi bi-file-earmark-zip-fill sib-file-icon"></i>
+                                <i class="bi {% if b.is_safety_point %}bi-shield-check text-amber{% else %}bi-file-earmark-zip-fill text-blue{% endif %} sib-file-icon"></i>
                                 <div>
-                                    <strong class="sib-file-name">{{ b.filename }}</strong>
+                                    <div class="sib-file-title-wrap">
+                                        <strong class="sib-file-name">{{ b.filename }}</strong>
+                                        {% if b.is_safety_point %}
+                                        <span class="sib-pill-safety">Точка отката</span>
+                                        {% endif %}
+                                        {% if b.has_sqlite_snapshot %}
+                                        <span class="sib-pill-snap">SQLite Snapshot</span>
+                                        {% endif %}
+                                    </div>
                                     {% if b.description %}
                                     <div class="sib-file-desc">{{ b.description }}</div>
                                     {% endif %}
@@ -238,7 +358,7 @@
                             </div>
                         </td>
                         <td>
-                            <span class="sib-date-badge">{{ b.mtime|date:"d.m.Y H:i"|default:b.created_at }}</span>
+                            <span class="sib-date-badge">{{ b.mtime|date:"d.m.Y H:i:s"|default:b.created_at }}</span>
                         </td>
                         <td>
                             <span class="sib-badge sib-badge-size">{{ b.archive_size_mb }} MB</span>
@@ -246,7 +366,7 @@
                         <td>
                             {% if b.total_db_records %}
                             <div class="sib-content-summary">
-                                <span><i class="bi bi-database"></i> {{ b.total_db_records }} записей</span>
+                                <span><i class="bi bi-database"></i> {{ b.total_db_records }} записей в БД</span>
                                 <span><i class="bi bi-images"></i> {{ b.media_files_count }} фото ({{ b.media_total_mb|default:0 }} MB)</span>
                             </div>
                             <div class="sib-sections-tags">
@@ -260,17 +380,15 @@
                         </td>
                         <td>
                             <div class="sib-action-btns">
+                                <button type="button" class="sib-act-btn inspect" onclick="inspectBackupByName('{{ b.filename }}')" title="Инспектировать состав архива и сравнить с текущей БД">
+                                    <i class="bi bi-search"></i> Аудит
+                                </button>
                                 <a href="{% url 'main:admin_backup_download' filename=b.filename %}" class="sib-act-btn download" title="Скачать архив на компьютер">
                                     <i class="bi bi-download"></i> Скачать
                                 </a>
-                                <form action="{% url 'main:admin_backup_restore' %}" method="post" style="display:inline;" onsubmit="return confirm('Восстановить данные из архива {{ b.filename }}?');">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="server_filename" value="{{ b.filename }}">
-                                    <input type="hidden" name="restore_media" value="1">
-                                    <button type="submit" class="sib-act-btn restore" title="Восстановить данные из этого архива">
-                                        <i class="bi bi-arrow-counterclockwise"></i> Применить
-                                    </button>
-                                </form>
+                                <button type="button" class="sib-act-btn restore" onclick="openRestoreModalForFile('{{ b.filename }}')" title="Восстановить данные из этого архива">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Накатить
+                                </button>
                                 <form action="{% url 'main:admin_backup_delete' filename=b.filename %}" method="post" style="display:inline;" onsubmit="return confirm('Удалить архив {{ b.filename }} безвозвратно?');">
                                     {% csrf_token %}
                                     <button type="submit" class="sib-act-btn delete" title="Удалить архив">
@@ -293,46 +411,119 @@
         {% endif %}
     </div>
 
-    <!-- БЛОК 4: Консольные команды для деплоя и автоматизации -->
+    <!-- БЛОК 4: Инструкции по консольным командам для деплоя и SSH -->
     <div class="sib-panel mt-4">
         <div class="sib-panel-head">
             <div class="sib-panel-icon purple"><i class="bi bi-terminal-fill"></i></div>
             <div>
                 <h2 class="sib-panel-title">Команды для сервера и автоматического деплоя (CLI)</h2>
-                <p class="sib-panel-desc">Используйте эти команды в SSH терминале хостинга (Timeweb) или в скриптах CI/CD</p>
+                <p class="sib-panel-desc">Используйте эти команды в SSH терминале хостинга (Timeweb) или в CI/CD скриптах</p>
             </div>
         </div>
 
         <div class="sib-cli-grid">
             <div class="sib-cli-box">
-                <h4><i class="bi bi-cloud-arrow-down"></i> Создание полного бэкапа (БД + фото):</h4>
+                <h4><i class="bi bi-cloud-arrow-down"></i> Создание полного бэкапа (БД + медиа):</h4>
                 <code>python manage.py backup_data</code>
-                <small class="text-muted">Сохраняет в <code>mysite/backups/backup_sibsir_all_YYYYMMDD_HHMMSS.zip</code></small>
+                <small class="text-muted">Адаптивное быстрое сжатие + снимок SQLite + фикстуры</small>
             </div>
 
             <div class="sib-cli-box">
-                <h4><i class="bi bi-basket2"></i> Только каталог продукции с картинками:</h4>
-                <code>python manage.py backup_data -i catalog</code>
-                <small class="text-muted">Идеально для быстрой выгрузки актуального ассортимента</small>
+                <h4><i class="bi bi-lightning-charge"></i> Быстрый дамп базы (без медиа):</h4>
+                <code>python manage.py backup_data --quick-db</code>
+                <small class="text-muted">Мгновенный снимок таблиц за долю секунды</small>
             </div>
 
             <div class="sib-cli-box">
-                <h4><i class="bi bi-cloud-arrow-up"></i> Восстановление последнего бэкапа на сервере:</h4>
-                <code>python manage.py restore_data --yes</code>
-                <small class="text-muted">Автоматически находит самый свежий архив и накатывает данные и фото</small>
+                <h4><i class="bi bi-search"></i> Аудит и сравнение с живой БД:</h4>
+                <code>python manage.py restore_data --inspect</code>
+                <small class="text-muted">Сверяет количество записей по каждой модели до восстановления</small>
             </div>
 
             <div class="sib-cli-box">
-                <h4><i class="bi bi-lightning-charge"></i> Чистый деплой с очисткой таблиц:</h4>
-                <code>python manage.py restore_data backup_sibsir_all_xxxx.zip --clear --yes</code>
-                <small class="text-muted">Полностью очищает старые записи и накатывает свежий каталог без конфликтов ID</small>
+                <h4><i class="bi bi-shield-check"></i> Чистый деплой на сервере:</h4>
+                <code>python manage.py restore_data --clear --yes</code>
+                <small class="text-muted">Автоматически находит свежий архив, делает точку отката и накатывает данные</small>
             </div>
         </div>
     </div>
 
 </div>
 
+<!-- МОДАЛЬНОЕ ОКНО ИНСПЕКЦИИ И АУДИТА АРХИВА -->
+<div id="sibInspectModal" class="sib-modal-backdrop" style="display:none;">
+    <div class="sib-modal-card">
+        <div class="sib-modal-header">
+            <div class="sib-modal-title-wrap">
+                <div class="sib-modal-badge"><i class="bi bi-file-earmark-check"></i> Аудит целостности архива</div>
+                <h3 id="inspectModalFilename" class="sib-modal-title">Имя архива</h3>
+            </div>
+            <button type="button" class="sib-modal-close" onclick="closeInspectModal()">&times;</button>
+        </div>
+
+        <div class="sib-modal-body" id="inspectModalBody">
+            <div class="sib-loading-spinner" id="inspectSpinner">
+                <i class="bi bi-arrow-repeat spin"></i> Выполняется проверка контрольных сумм и анализ содержимого...
+            </div>
+            <div id="inspectContent" style="display:none;">
+                <!-- Сводная информация -->
+                <div class="sib-inspect-kpis">
+                    <div class="sib-inspect-kpi">
+                        <span class="sib-ikpi-label">Размер архива</span>
+                        <span class="sib-ikpi-val" id="ikpiSize">0 MB</span>
+                    </div>
+                    <div class="sib-inspect-kpi">
+                        <span class="sib-ikpi-label">Записей в базе</span>
+                        <span class="sib-ikpi-val" id="ikpiRecords">0</span>
+                    </div>
+                    <div class="sib-inspect-kpi">
+                        <span class="sib-ikpi-label">Медиафайлов</span>
+                        <span class="sib-ikpi-val" id="ikpiMedia">0</span>
+                    </div>
+                    <div class="sib-inspect-kpi">
+                        <span class="sib-ikpi-label">Снимок SQLite</span>
+                        <span class="sib-ikpi-val" id="ikpiSnapshot">Нет</span>
+                    </div>
+                </div>
+
+                <div class="sib-sha-badge" id="ikpiSha">SHA-256: ...</div>
+
+                <!-- Таблица сравнения моделей -->
+                <h4 style="font-size:0.95rem; margin:16px 0 8px; color:#cbd5e1;"><i class="bi bi-table"></i> Сравнение данных в архиве и текущей базе данных:</h4>
+                <div class="sib-modal-table-scroll">
+                    <table class="sib-table-mini">
+                        <thead>
+                            <tr>
+                                <th>Модель данных</th>
+                                <th>В архиве</th>
+                                <th>В текущей БД</th>
+                                <th>Разница</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inspectModelRows">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="inspectMediaFoldersWrap" style="margin-top:14px;">
+                    <h4 style="font-size:0.95rem; margin:0 0 6px; color:#cbd5e1;"><i class="bi bi-folder"></i> Фотографии по папкам:</h4>
+                    <div class="sib-folders-chips" id="inspectMediaFolders"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sib-modal-footer">
+            <button type="button" class="sib-btn sib-btn-outline" onclick="closeInspectModal()">Закрыть</button>
+            <button type="button" class="sib-btn sib-btn-danger" id="inspectRestoreBtn" onclick="applyRestoreFromInspect()">
+                <i class="bi bi-arrow-counterclockwise"></i> Накатить этот архив
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+let currentInspectedFile = "";
+
 function toggleRestoreSource(type) {
     const uploadBlock = document.getElementById('sourceUploadBlock');
     const serverBlock = document.getElementById('sourceServerBlock');
@@ -345,13 +536,151 @@ function toggleRestoreSource(type) {
     }
 }
 
+function toggleAllCheckboxes(className, checked) {
+    document.querySelectorAll('.' + className).forEach(function(cb) {
+        cb.checked = checked;
+    });
+}
+
+function onServerFileSelected() {
+    const sel = document.getElementById('id_server_filename');
+    const btn = document.getElementById('quickInspectBtn');
+    if (btn) {
+        btn.disabled = !sel.value;
+    }
+}
+
+function inspectSelectedBackup() {
+    const sel = document.getElementById('id_server_filename');
+    if (sel && sel.value) {
+        inspectBackupByName(sel.value);
+    } else {
+        alert('Пожалуйста, выберите архив из выпадающего списка.');
+    }
+}
+
+function inspectBackupByName(filename) {
+    currentInspectedFile = filename;
+    const modal = document.getElementById('sibInspectModal');
+    const spinner = document.getElementById('inspectSpinner');
+    const content = document.getElementById('inspectContent');
+    const titleEl = document.getElementById('inspectModalFilename');
+
+    titleEl.textContent = filename;
+    modal.style.display = 'flex';
+    spinner.style.display = 'block';
+    content.style.display = 'none';
+
+    fetch('/admin-backups/inspect/' + encodeURIComponent(filename) + '/')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            spinner.style.display = 'none';
+            content.style.display = 'block';
+
+            if (!data.valid) {
+                alert('Ошибка инспекции архива: ' + (data.error || 'Архив поврежден'));
+                closeInspectModal();
+                return;
+            }
+
+            document.getElementById('ikpiSize').textContent = data.archive_size_mb + ' MB';
+            document.getElementById('ikpiRecords').textContent = data.total_db_records;
+            document.getElementById('ikpiMedia').textContent = data.media_files_count + ' (' + data.media_total_mb + ' MB)';
+            document.getElementById('ikpiSnapshot').textContent = data.has_sqlite_snapshot ? '✅ Да' : '— Нет';
+            document.getElementById('ikpiSha').textContent = 'Контрольная сумма SHA-256: ' + (data.sha256 || 'Не рассчитана');
+
+            // Заполнение таблицы моделей
+            const tbody = document.getElementById('inspectModelRows');
+            tbody.innerHTML = '';
+            if (data.models_comparison && data.models_comparison.length > 0) {
+                data.models_comparison.forEach(function(item) {
+                    const tr = document.createElement('tr');
+                    let diffBadge = '';
+                    if (item.diff > 0) {
+                        diffBadge = '<span class="diff-plus">+' + item.diff + '</span>';
+                    } else if (item.diff < 0) {
+                        diffBadge = '<span class="diff-minus">' + item.diff + '</span>';
+                    } else {
+                        diffBadge = '<span class="diff-zero">0</span>';
+                    }
+
+                    tr.innerHTML = '<td><strong>' + item.title + '</strong> <small class="text-muted">(' + item.model + ')</small></td>' +
+                                   '<td>' + item.backup_count + '</td>' +
+                                   '<td>' + item.current_db_count + '</td>' +
+                                   '<td>' + diffBadge + '</td>';
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-muted">Объекты базы данных не найдены в архиве</td></tr>';
+            }
+
+            // Медиа папки
+            const foldersWrap = document.getElementById('inspectMediaFolders');
+            foldersWrap.innerHTML = '';
+            if (data.media_folders && data.media_folders.length > 0) {
+                data.media_folders.forEach(function(mf) {
+                    const span = document.createElement('span');
+                    span.className = 'sib-folder-chip';
+                    span.innerHTML = '<i class="bi bi-folder-fill"></i> media/' + mf.folder + '/: <strong>' + mf.count + '</strong>';
+                    foldersWrap.appendChild(span);
+                });
+            } else {
+                foldersWrap.innerHTML = '<span class="text-muted">Медиафайлы отсутствуют в архиве</span>';
+            }
+        })
+        .catch(function(err) {
+            spinner.style.display = 'none';
+            alert('Сбой запроса инспекции архива: ' + err);
+            closeInspectModal();
+        });
+}
+
+function closeInspectModal() {
+    document.getElementById('sibInspectModal').style.display = 'none';
+}
+
+function openRestoreModalForFile(filename) {
+    const sel = document.getElementById('id_server_filename');
+    if (sel) {
+        sel.value = filename;
+    }
+    // Переключаем вкладку на серверный архив
+    const rTabs = document.querySelectorAll('input[name="source_type"]');
+    rTabs.forEach(function(tab) {
+        if (tab.value === 'server') { tab.checked = true; }
+    });
+    toggleRestoreSource('server');
+
+    // Прокручиваем к блоку восстановления
+    const restoreForm = document.getElementById('restoreForm');
+    if (restoreForm) {
+        restoreForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+function applyRestoreFromInspect() {
+    if (!currentInspectedFile) return;
+    closeInspectModal();
+    openRestoreModalForFile(currentInspectedFile);
+}
+
+// Предотвращение случайного запуска
 document.getElementById('restoreForm').addEventListener('submit', function(e) {
-    const clearChecked = document.getElementById('clearTablesCheck').checked;
-    if (clearChecked) {
-        if (!confirm('ВНИМАНИЕ: Вы выбрали очистку таблиц перед восстановлением!\nВсе текущие товары, заказы и статьи будут заменены данными из архива.\n\nВы уверены, что хотите продолжить?')) {
-            e.preventDefault();
-            return false;
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    const safetyChecked = document.getElementById('createSafetyCheck').checked;
+
+    let warningText = "Вы уверены, что хотите запустить восстановление?";
+    if (mode === 'clean') {
+        warningText = "ВНИМАНИЕ: Выбран режим «Чистый деплой»!\nВыбранные таблицы будут очищены и заменены данными из архива.\n(Администраторы сайта сохраняются).\n";
+        if (safetyChecked) {
+            warningText += "\nПеред очисткой будет автоматически создана точка отката.";
         }
+        warningText += "\n\nПродолжить?";
+    }
+
+    if (!confirm(warningText)) {
+        e.preventDefault();
+        return false;
     }
 });
 </script>
@@ -375,9 +704,9 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 0.82rem;
@@ -394,14 +723,20 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     color: var(--admin-text-muted, #94a3b8);
     font-size: 0.95rem;
     margin: 0;
-    max-width: 820px;
+    max-width: 840px;
     line-height: 1.5;
+}
+.sib-backup-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 /* Статистика */
 .sib-stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
     margin-bottom: 24px;
 }
@@ -434,7 +769,8 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
 .card-media .sib-stat-icon { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
 .card-orders .sib-stat-icon { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
 .card-users .sib-stat-icon { background: rgba(139, 92, 246, 0.15); color: #8b5cf6; }
-.card-articles .sib-stat-icon { background: rgba(14, 165, 233, 0.15); color: #0ea5e9; }
+.card-news .sib-stat-icon { background: rgba(234, 88, 12, 0.15); color: #ea580c; }
+.card-disk .sib-stat-icon { background: rgba(14, 165, 233, 0.15); color: #0ea5e9; }
 
 .sib-stat-content {
     display: flex;
@@ -447,14 +783,84 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     line-height: 1.1;
 }
 .sib-stat-label {
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 600;
     color: var(--admin-text-main, #e2e8f0);
 }
 .sib-stat-desc {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     color: var(--admin-text-muted, #94a3b8);
     margin-top: 2px;
+}
+
+/* Баннер точек отката */
+.sib-safety-banner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(30, 41, 59, 0.9) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+}
+.sib-safety-icon {
+    font-size: 2rem;
+    color: #f59e0b;
+    flex-shrink: 0;
+}
+.sib-safety-content { flex-grow: 1; }
+.sib-safety-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fef3c7;
+    margin-bottom: 4px;
+}
+.sib-safety-text {
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    margin-bottom: 12px;
+}
+.sib-safety-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sib-safety-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(15, 23, 42, 0.7);
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.sib-safety-name {
+    font-weight: 600;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.sib-safety-name i { color: #f59e0b; }
+.sib-safety-date { color: #94a3b8; font-size: 0.8rem; }
+.sib-safety-btn {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.sib-safety-btn:hover {
+    background: #f59e0b;
+    color: #111827;
 }
 
 /* Колонки и панели */
@@ -535,6 +941,22 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
 }
 
+.sib-toggle-all-btns {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.8rem;
+}
+.sib-link-btn {
+    background: none;
+    border: none;
+    color: #38bdf8;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.8rem;
+    text-decoration: underline;
+}
+
 .sib-checkbox-list {
     display: flex;
     flex-direction: column;
@@ -559,10 +981,6 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     background: rgba(16, 185, 129, 0.08);
     border-color: rgba(16, 185, 129, 0.3);
 }
-.sib-checkbox-card.danger-card {
-    background: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.3);
-}
 .sib-checkbox-card input[type="checkbox"] {
     margin-top: 3px;
     width: 18px;
@@ -581,7 +999,47 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     color: var(--admin-text-muted, #94a3b8);
     margin-top: 2px;
 }
-.text-danger { color: #f87171 !important; }
+
+/* Радио переключатели режима */
+.sib-mode-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sib-mode-option {
+    display: flex;
+    cursor: pointer;
+}
+.sib-mode-option input { display: none; }
+.sib-mode-box {
+    flex: 1;
+    padding: 10px 14px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--admin-border, #334155);
+    border-radius: 8px;
+    transition: all 0.15s;
+}
+.sib-mode-option input:checked + .sib-mode-box {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: #f59e0b;
+}
+.sib-mode-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.sib-mode-option input:checked + .sib-mode-box .sib-mode-title {
+    color: #f59e0b;
+}
+.sib-mode-desc {
+    font-size: 0.78rem;
+    color: var(--admin-text-muted, #94a3b8);
+    margin-top: 3px;
+    line-height: 1.35;
+}
 
 .sib-restore-sources {
     display: flex;
@@ -631,20 +1089,11 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     transition: all 0.2s;
     border: none;
 }
-.sib-btn-primary {
-    background: #10b981;
-    color: #ffffff;
-}
+.sib-btn-primary { background: #10b981; color: #ffffff; }
 .sib-btn-primary:hover { background: #059669; }
-.sib-btn-secondary {
-    background: #f59e0b;
-    color: #111827;
-}
+.sib-btn-secondary { background: #f59e0b; color: #111827; }
 .sib-btn-secondary:hover { background: #d97706; }
-.sib-btn-danger {
-    background: #ef4444;
-    color: #ffffff;
-}
+.sib-btn-danger { background: #ef4444; color: #ffffff; }
 .sib-btn-danger:hover { background: #dc2626; }
 .sib-btn-outline {
     background: transparent;
@@ -654,9 +1103,7 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
 .sib-btn-outline:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
 
 /* Таблица бэкапов */
-.sib-table-responsive {
-    overflow-x: auto;
-}
+.sib-table-responsive { overflow-x: auto; }
 .sib-table {
     width: 100%;
     border-collapse: collapse;
@@ -677,22 +1124,47 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     border-bottom: 1px solid rgba(51, 65, 85, 0.5);
     color: var(--admin-text-main, #e2e8f0);
 }
-.sib-table tr:hover td {
-    background: rgba(255, 255, 255, 0.02);
+.sib-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+.sib-table tr.row-safety td {
+    background: rgba(245, 158, 11, 0.03);
 }
+
 .sib-file-row {
     display: flex;
     align-items: center;
     gap: 12px;
 }
-.sib-file-icon {
-    font-size: 1.8rem;
-    color: #f59e0b;
+.sib-file-icon { font-size: 1.8rem; }
+.text-amber { color: #f59e0b; }
+.text-blue { color: #3b82f6; }
+.sib-file-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 .sib-file-name {
     font-size: 0.92rem;
     color: #f8fafc;
     word-break: break-all;
+}
+.sib-pill-safety {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 12px;
+}
+.sib-pill-snap {
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 12px;
 }
 .sib-file-desc {
     font-size: 0.78rem;
@@ -737,6 +1209,7 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
 }
 .sib-act-btn {
     display: inline-flex;
@@ -751,6 +1224,8 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     border: none;
     transition: all 0.15s;
 }
+.sib-act-btn.inspect { background: rgba(139, 92, 246, 0.15); color: #a78bfa; }
+.sib-act-btn.inspect:hover { background: #8b5cf6; color: #fff; }
 .sib-act-btn.download { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
 .sib-act-btn.download:hover { background: #3b82f6; color: #fff; }
 .sib-act-btn.restore { background: rgba(16, 185, 129, 0.15); color: #34d399; }
@@ -806,6 +1281,163 @@ document.getElementById('restoreForm').addEventListener('submit', function(e) {
     margin-bottom: 6px;
     border: 1px solid rgba(56, 189, 248, 0.2);
 }
+
+/* МОДАЛЬНОЕ ОКНО */
+.sib-modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+.sib-modal-card {
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 14px;
+    max-width: 820px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    animation: modalPop 0.2s ease-out;
+}
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+.sib-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 18px 24px;
+    border-bottom: 1px solid #334155;
+}
+.sib-modal-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #a78bfa;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+.sib-modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #f8fafc;
+    word-break: break-all;
+}
+.sib-modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.6rem;
+    cursor: pointer;
+    line-height: 1;
+}
+.sib-modal-close:hover { color: #fff; }
+.sib-modal-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+.sib-modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid #334155;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.sib-loading-spinner {
+    text-align: center;
+    padding: 40px 20px;
+    color: #94a3b8;
+    font-size: 1rem;
+}
+.spin {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+    font-size: 1.5rem;
+    color: #f59e0b;
+    margin-right: 8px;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+.sib-inspect-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.sib-inspect-kpi {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+}
+.sib-ikpi-label { font-size: 0.75rem; color: #94a3b8; }
+.sib-ikpi-val { font-size: 1.25rem; font-weight: 700; color: #f8fafc; margin-top: 2px; }
+
+.sib-sha-badge {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px dashed #475569;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: Consolas, monospace;
+    font-size: 0.78rem;
+    color: #94a3b8;
+    word-break: break-all;
+}
+.sib-modal-table-scroll {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid #334155;
+    border-radius: 8px;
+}
+.sib-table-mini {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+.sib-table-mini th {
+    background: #0f172a;
+    padding: 8px 12px;
+    text-align: left;
+    color: #94a3b8;
+    font-size: 0.75rem;
+    position: sticky;
+    top: 0;
+}
+.sib-table-mini td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+    color: #e2e8f0;
+}
+.diff-plus { color: #34d399; font-weight: 700; }
+.diff-minus { color: #f87171; font-weight: 700; }
+.diff-zero { color: #64748b; }
+
+.sib-folders-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.sib-folder-chip {
+    background: rgba(59, 130, 246, 0.12);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+.sib-folder-chip i { color: #60a5fa; margin-right: 4px; }
 </style>
 {% endblock %}
-
