@@ -19,6 +19,7 @@ from .price_manager import (
 )
 from news.models import News
 from articles.models import Article
+from news.widgets import ModernDateTimePickerWidget
 
 logger = logging.getLogger(__name__)
 
@@ -187,10 +188,21 @@ class PromotionAdmin(admin.ModelAdmin):
     def dates_display(self, obj):
         if not obj.start_date and not obj.end_date:
             return "Бессрочно"
-        s = obj.start_date.strftime("%d.%m.%Y") if obj.start_date else "—"
-        e = obj.end_date.strftime("%d.%m.%Y") if obj.end_date else "—"
-        return f"{s} по {e}"
+        s = obj.start_date.strftime("%d.%m.%Y %H:%M") if obj.start_date else "—"
+        e = obj.end_date.strftime("%d.%m.%Y %H:%M") if obj.end_date else "—"
+        return f"{s} — {e}"
     dates_display.short_description = "Сроки действия"
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name in ("start_date", "end_date"):
+            field = super().formfield_for_dbfield(db_field, request, **kwargs)
+            field.widget = ModernDateTimePickerWidget()
+            # end_date необязательна — разрешаем оставить пустой (не автозаполнять)
+            if db_field.name == "end_date":
+                field.required = False
+                field.widget.allow_blank = True  # флаг для шаблонного рендера
+            return field
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
 @admin.register(PromoCode)
@@ -264,6 +276,16 @@ class PromoCodeAdmin(admin.ModelAdmin):
             bg, text, label
         )
     applies_to_badge.short_description = "Область"
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name in ("valid_from", "valid_to"):
+            field = super().formfield_for_dbfield(db_field, request, **kwargs)
+            field.widget = ModernDateTimePickerWidget()
+            # valid_to необязательна — не автозаполнять
+            if db_field.name == "valid_to":
+                field.required = False
+            return field
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
 
 class ReviewInline(admin.TabularInline):
