@@ -133,7 +133,7 @@
         </div>
 
         <div class="text-muted small">
-            Показано: <span id="visibleArticlesCount" class="fw-bold text-dark">{{ total_count }}</span> из {{ all_articles_count }}
+            Показано: <span id="visibleArticlesCount" class="fw-bold text-dark">{{ articles|length }}</span> из {{ all_articles_count }}
         </div>
     </div>
 
@@ -191,6 +191,8 @@
                 </div>
             {% endfor %}
         </div>
+
+        {% include "includes/pagination.html" with page_obj=page_obj elided_page_range=elided_page_range pagination_query=pagination_query per_page_label="9 статей на страницу" item_label="статей" aria_label="Постраничная навигация по статьям" %}
     {% else %}
         <!-- EMPTY STATE -->
         <div class="text-center py-5 bg-white rounded-4 border shadow-sm p-4 my-4">

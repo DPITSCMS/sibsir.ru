@@ -1,4 +1,5 @@
 from collections import defaultdict
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import F, Q
 from django.contrib import messages
@@ -58,7 +59,15 @@ def news_list_view(request):
         if selected_day and selected_day.isdigit():
             qs = qs.filter(published_at__day=int(selected_day))
 
-    news_list = list(qs.order_by("-published_at", "-id"))
+    ordered_qs = qs.order_by("-published_at", "-id")
+    paginator = Paginator(ordered_qs, 9)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    elided_page_range = list(paginator.get_elided_page_range(page_obj.number, on_each_side=1, on_ends=1))
+    news_list = list(page_obj.object_list)
+
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+    pagination_query = query_params.urlencode()
 
     # Сбор всех доступных годов и месяцев для быстрых фильтров на базе общего списка
     all_published_news = list(base_qs.order_by("-published_at"))
@@ -148,8 +157,11 @@ def news_list_view(request):
         "brand_name": settings.brand_name,
         "brand_short_name": settings.brand_short_name,
         "news_list": news_list,
+        "page_obj": page_obj,
+        "elided_page_range": elided_page_range,
+        "pagination_query": pagination_query,
         "grouped_years": grouped_years,
-        "total_count": len(news_list),
+        "total_count": paginator.count,
         "all_count": base_qs.count(),
         "query": query,
         "selected_year": selected_year,

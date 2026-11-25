@@ -159,3 +159,44 @@ class NewsModuleTestCase(TestCase):
         self.assertTrue(edit_notification.is_auto_generated)
         self.assertEqual(edit_notification.source_model, "News")
         self.assertEqual(edit_notification.source_action, "update")
+
+    def test_news_pagination_9_per_page(self):
+        """Проверка постраничной навигации новостей по 9 на страницу с сохранением фильтров."""
+        base_dt = timezone.make_aware(datetime.datetime(2026, 11, 1, 12, 0))
+        for i in range(1, 21):
+            News.objects.create(
+                title=f"Новость пагинации {i}",
+                snippet=f"Анонс {i}",
+                content=f"<p>Текст {i}</p>",
+                news_type="promo" if i <= 11 else "general",
+                published_at=base_dt + datetime.timedelta(hours=i),
+            )
+
+        url = reverse("news:news_list")
+
+        res_p1 = self.client.get(url)
+        self.assertEqual(res_p1.status_code, 200)
+        self.assertEqual(res_p1.context["total_count"], 20)
+        self.assertEqual(len(res_p1.context["news_list"]), 9)
+        self.assertEqual(res_p1.context["page_obj"].number, 1)
+        self.assertEqual(res_p1.context["page_obj"].paginator.num_pages, 3)
+        html_p1 = res_p1.content.decode("utf-8")
+        self.assertIn("9 новостей на страницу", html_p1)
+        self.assertIn("?page=2", html_p1)
+
+        res_p2 = self.client.get(url, {"page": 2})
+        self.assertEqual(res_p2.status_code, 200)
+        self.assertEqual(len(res_p2.context["news_list"]), 9)
+        self.assertEqual(res_p2.context["page_obj"].number, 2)
+
+        res_p3 = self.client.get(url, {"page": 3})
+        self.assertEqual(res_p3.status_code, 200)
+        self.assertEqual(len(res_p3.context["news_list"]), 2)
+        self.assertEqual(res_p3.context["page_obj"].number, 3)
+
+        # Проверка сохранения фильтра type=promo в ссылках пагинации
+        res_filtered = self.client.get(url, {"type": "promo"})
+        self.assertEqual(res_filtered.status_code, 200)
+        self.assertEqual(res_filtered.context["total_count"], 11)
+        self.assertEqual(len(res_filtered.context["news_list"]), 9)
+        self.assertIn("type=promo&page=2", res_filtered.content.decode("utf-8"))

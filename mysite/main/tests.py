@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
+from articles.models import Article
 from shop.models import Category, Product
 from main.models import SiteSettings, FooterStatBanner
 
@@ -148,4 +149,49 @@ class FooterStatBannerTest(TestCase):
         self.assertIn('https://www.liveinternet.ru/click', content)
         self.assertIn('LiveInternet: число просмотров за 24 часа', content)
         self.assertNotIn('hidden-counter', content)
+
+
+class ArticlesPaginationTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        for i in range(1, 21):
+            Article.objects.create(
+                title=f"Статья о сыре {i}" if i <= 11 else f"Материал производства {i}",
+                slug=f"article-test-{i}",
+                snippet=f"Краткое описание {i}",
+                content=f"<p>Содержимое {i}</p>",
+                is_published=True,
+                order=i,
+            )
+
+    def test_articles_pagination_9_per_page(self):
+        url = reverse("main:articles")
+
+        res_p1 = self.client.get(url, HTTP_HOST="127.0.0.1")
+        self.assertEqual(res_p1.status_code, 200)
+        self.assertEqual(res_p1.context["total_count"], 20)
+        self.assertEqual(len(res_p1.context["articles"]), 9)
+        self.assertEqual(res_p1.context["page_obj"].number, 1)
+        self.assertEqual(res_p1.context["page_obj"].paginator.num_pages, 3)
+        html_p1 = res_p1.content.decode("utf-8")
+        self.assertIn("9 статей на страницу", html_p1)
+        self.assertIn("?page=2", html_p1)
+
+        res_p2 = self.client.get(url, {"page": 2}, HTTP_HOST="127.0.0.1")
+        self.assertEqual(res_p2.status_code, 200)
+        self.assertEqual(len(res_p2.context["articles"]), 9)
+        self.assertEqual(res_p2.context["page_obj"].number, 2)
+
+        res_p3 = self.client.get(url, {"page": 3}, HTTP_HOST="127.0.0.1")
+        self.assertEqual(res_p3.status_code, 200)
+        self.assertEqual(len(res_p3.context["articles"]), 2)
+        self.assertEqual(res_p3.context["page_obj"].number, 3)
+
+        # Проверка сохранения поискового запроса в ссылках пагинации
+        res_q = self.client.get(url, {"q": "сыре"}, HTTP_HOST="127.0.0.1")
+        self.assertEqual(res_q.status_code, 200)
+        self.assertEqual(res_q.context["total_count"], 11)
+        self.assertEqual(len(res_q.context["articles"]), 9)
+        self.assertIn("page=2", res_q.content.decode("utf-8"))
+        self.assertIn("q=", res_q.content.decode("utf-8"))
 

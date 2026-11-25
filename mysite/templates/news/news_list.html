@@ -326,6 +326,8 @@
                 </div>
             {% endfor %}
         </div>
+
+        {% include "includes/pagination.html" with page_obj=page_obj elided_page_range=elided_page_range pagination_query=pagination_query per_page_label="9 новостей на страницу" item_label="новостей" aria_label="Постраничная навигация по новостям" %}
     {% else %}
         <!-- EMPTY STATE -->
         <div class="card border-0 shadow-sm rounded-4 p-5 text-center my-4 bg-white">

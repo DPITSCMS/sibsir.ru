@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
@@ -355,9 +356,18 @@ def articles_list_view(request):
         q_obj = Q()
         for w in words:
             q_obj &= (Q(title__icontains=w) | Q(snippet__icontains=w) | Q(content__icontains=w))
-        articles = list(articles_qs.filter(q_obj))
+        filtered_qs = articles_qs.filter(q_obj)
     else:
-        articles = list(articles_qs)
+        filtered_qs = articles_qs
+
+    paginator = Paginator(filtered_qs, 9)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    elided_page_range = list(paginator.get_elided_page_range(page_obj.number, on_each_side=1, on_ends=1))
+    articles = list(page_obj.object_list)
+
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+    pagination_query = query_params.urlencode()
 
     seo_data = settings.get_page_seo("articles")
     context = {
@@ -368,7 +378,10 @@ def articles_list_view(request):
         "brand_name": settings.brand_name,
         "brand_short_name": settings.brand_short_name,
         "articles": articles,
-        "total_count": len(articles),
+        "page_obj": page_obj,
+        "elided_page_range": elided_page_range,
+        "pagination_query": pagination_query,
+        "total_count": paginator.count,
         "all_articles_count": Article.objects.filter(is_published=True).count(),
         "query": query,
     }
