@@ -29,9 +29,10 @@ def handle_news_post_save(sender, instance, created, **kwargs):
     if created:
         return
 
-    # Игнорируем обновление ТОЛЬКО просмотров (views_count)
+    # Игнорируем обновление служебных полей (views_count, SEO, slug, обновление updated_at)
     update_fields = kwargs.get("update_fields")
-    if update_fields and set(update_fields) == {"views_count"}:
+    _skip_fields = {"views_count", "meta_title", "meta_description", "meta_keywords", "updated_at", "slug"}
+    if update_fields and set(update_fields).issubset(_skip_fields):
         return
 
     # Если новость была ОТРЕДАКТИРОВАНА (изменена) - требование:
