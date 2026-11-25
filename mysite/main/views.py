@@ -22,7 +22,7 @@ def index(request):
     categories = Category.objects.filter(is_active=True).order_by("order", "name")
     features = ProductionFeature.objects.filter(is_active=True).order_by("order", "id")
     all_products = list(Product.objects.filter(is_active=True).select_related("category").order_by("order", "id"))
-    articles = Article.objects.filter(is_published=True).order_by("order", "-id")[:6]
+    articles = Article.objects.filter(is_published=True).order_by("-created_at")[:6]
     reviews = Review.objects.filter(is_approved=True).order_by("-created_at")[:6]
 
     now = timezone.now()
@@ -348,7 +348,7 @@ def articles_list_view(request):
     Поддерживает поиск по статьям.
     """
     settings = SiteSettings.get_solo()
-    articles_qs = Article.objects.filter(is_published=True).order_by("order", "-id")
+    articles_qs = Article.objects.filter(is_published=True).order_by("-created_at")
 
     query = request.GET.get("q", "").strip()
     if query:

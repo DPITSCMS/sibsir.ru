@@ -53,7 +53,7 @@ class Article(models.Model):
     class Meta:
         verbose_name = "Статья о сыре"
         verbose_name_plural = "Статьи и полезные материалы"
-        ordering = ["order", "-id"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         return self.title
