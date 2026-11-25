@@ -1,4 +1,4 @@
-    <!-- 3.5 SALE PRODUCTS SECTION (ТОЛЬКО ЕСЛИ ЕСТЬ АКЦИИ - ПО 3 ТОВАРА НА СТРОЧКУ) -->
+    <!-- 3.5 SALE PRODUCTS SECTION (КАРУСЕЛЬ: 3 ТОВАРА НА ДЕСКТОПЕ, 1 НА МОБ/ПЛАНШЕТЕ) -->
     {% if sale_products %}
     <section class="mb-5" id="sale-products">
         <div class="p-4 p-md-5 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #fff5f5 0%, #fff1f2 100%); border: 1.5px solid #fecdd3;">
@@ -7,19 +7,31 @@
                     <span class="badge bg-danger text-white px-3 py-1 rounded-pill fw-bold mb-2">
                         <i class="bi bi-percent me-1"></i> Специальные цены
                     </span>
-                    <h2 class="section-head-title text-dark mb-1">Товары со скидкой и по акции</h2>
+                    <h2 class="section-head-title text-dark mb-1" style="text-shadow: none;">Товары со скидкой и по акции</h2>
                     <p class="text-muted small mb-0">Успейте купить отборные сыры и натуральную продукцию по специальным фабричным ценам</p>
                 </div>
-                <a href="{% url 'main:catalog' %}?cat=sale" class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm">
-                    <span>Все товары со скидкой ({{ sale_products_count }})</span>
-                    <i class="bi bi-arrow-right ms-1"></i>
-                </a>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="carousel-nav-arrows d-flex align-items-center gap-2 me-1">
+                        <button type="button" class="btn btn-carousel-nav" data-carousel-prev="#saleCarousel" aria-label="Предыдущий товар" title="Предыдущий">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-carousel-nav" data-carousel-next="#saleCarousel" aria-label="Следующий товар" title="Следующий">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                    <a href="{% url 'main:catalog' %}?cat=sale" class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm">
+                        <span>Все товары со скидкой ({{ sale_products_count }})</span>
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
             </div>
 
-            <div class="row g-2 g-md-4">
-                {% for prod in sale_products %}
-                    <div class="col-6 col-md-4 col-lg-4">
-                        <div class="product-card">
+            <div class="products-carousel-wrapper" id="saleCarousel">
+                <div class="products-carousel-viewport">
+                    <div class="products-carousel-track">
+                        {% for prod in sale_products %}
+                            <div class="products-carousel-slide">
+                                <div class="product-card">
                             {% if prod.effective_badge %}
                                 <div class="product-badge-float product-badge-sale">
                                     <i class="bi bi-fire me-1"></i>{{ prod.effective_badge }}
@@ -97,9 +109,18 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
-                {% endfor %}
+                </div>
+                <button type="button" class="carousel-side-nav carousel-side-prev" data-carousel-prev="#saleCarousel" aria-label="Предыдущий товар" title="Предыдущий">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button type="button" class="carousel-side-nav carousel-side-next" data-carousel-next="#saleCarousel" aria-label="Следующий товар" title="Следующий">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <div class="products-carousel-dots" data-carousel-dots="#saleCarousel"></div>
             </div>
         </div>
     </section>

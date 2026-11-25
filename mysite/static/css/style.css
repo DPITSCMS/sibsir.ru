@@ -4231,5 +4231,37 @@ body {
     box-shadow: 0 2px 8px rgba(255, 132, 0, 0.4);
 }
 
+/* Translucent white glass background for homepage product sections */
+.products-glass-wrap {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 24px;
+    padding: 1.75rem 1.5rem;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+}
+
+@media (min-width: 768px) {
+    .products-glass-wrap {
+        padding: 2.5rem;
+    }
+}
+
+.products-glass-wrap .section-head-title {
+    color: var(--dark-slate);
+    text-shadow: none;
+}
+
+.products-glass-wrap .section-head-badge {
+    color: var(--primary-orange);
+    text-shadow: none;
+}
+
+.products-glass-wrap .section-head-subtitle {
+    color: var(--text-muted) !important;
+    text-shadow: none;
+}
+
 
 
