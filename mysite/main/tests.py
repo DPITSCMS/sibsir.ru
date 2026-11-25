@@ -76,6 +76,27 @@ class CoreSiteEndpointsTest(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertIn("urlset", res.content.decode("utf-8"))
 
+    def test_google_verification_file(self):
+        res = self.client.get("/google70ba8bfb8c55d9f9.html", HTTP_HOST="127.0.0.1")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(
+            res.content.decode("utf-8").strip(),
+            "google-site-verification: google70ba8bfb8c55d9f9.html",
+        )
+
+    def test_google_verification_nonexistent_returns_404(self):
+        res = self.client.get("/googlenonexistent123456.html", HTTP_HOST="127.0.0.1")
+        self.assertEqual(res.status_code, 404)
+
+    def test_yandex_verification_file(self):
+        res = self.client.get("/yandex_2481be1b37f5b18c.html", HTTP_HOST="127.0.0.1")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("2481be1b37f5b18c", res.content.decode("utf-8"))
+
+    def test_yandex_verification_nonexistent_returns_404(self):
+        res = self.client.get("/yandex_nonexistent123456.html", HTTP_HOST="127.0.0.1")
+        self.assertEqual(res.status_code, 404)
+
 
 class FooterStatBannerTest(TestCase):
     def setUp(self):
