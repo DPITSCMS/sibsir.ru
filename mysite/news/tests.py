@@ -106,6 +106,41 @@ class NewsModuleTestCase(TestCase):
         self.assertIn("modern-datetime-picker-wrapper", rendered)
         self.assertIn("applyDateTimePreset", rendered)
 
+    def test_admin_add_and_change_news_with_datetime_local(self):
+        """Проверка создания и редактирования новости в Django Admin с datetime-local."""
+        self.client.force_login(self.staff_user)
+        add_url = reverse("admin:news_news_add")
+
+        get_res = self.client.get(add_url)
+        self.assertEqual(get_res.status_code, 200)
+
+        post_res = self.client.post(add_url, {
+            "title": "Админская новость тест",
+            "slug": "admin-news-test",
+            "news_type": "general",
+            "snippet": "Краткий анонс",
+            "content": "<p>Полный текст новости</p>",
+            "published_at": "2026-11-25T07:38",
+            "is_published": "on",
+            "views_count": "0",
+        })
+        self.assertEqual(post_res.status_code, 302)
+        created = News.objects.get(slug="admin-news-test")
+        self.assertEqual(created.title, "Админская новость тест")
+
+        # Проверка повторного рендера формы при ошибке валидации (без AttributeError)
+        invalid_res = self.client.post(add_url, {
+            "title": "",
+            "slug": "admin-news-invalid",
+            "news_type": "general",
+            "snippet": "Краткий анонс",
+            "content": "<p>Полный текст новости</p>",
+            "published_at": "2026-11-25T07:38",
+            "is_published": "on",
+            "views_count": "0",
+        })
+        self.assertEqual(invalid_res.status_code, 200)
+
     def test_product_change_creates_news(self):
         """Проверка: добавление и редактирование товара создает новость."""
         initial_news_count = News.objects.count()

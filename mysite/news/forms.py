@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 from tinymce.widgets import TinyMCE
 from .models import News
 from .widgets import ModernDateTimePickerWidget
@@ -6,11 +7,17 @@ from .widgets import ModernDateTimePickerWidget
 
 class NewsAdminForm(forms.ModelForm):
     """Форма для панели управления Django с красивым выбором даты и времени."""
+    published_at = forms.DateTimeField(
+        label="Дата и время публикации",
+        help_text="Определяет день, месяц и год публикации новости",
+        initial=timezone.now,
+        widget=ModernDateTimePickerWidget(),
+    )
+
     class Meta:
         model = News
         fields = "__all__"
         widgets = {
-            "published_at": ModernDateTimePickerWidget(),
             "content": TinyMCE(),
             "snippet": forms.Textarea(attrs={
                 "rows": 3,
