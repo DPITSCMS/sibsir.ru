@@ -195,3 +195,95 @@ class ArticlesPaginationTest(TestCase):
         self.assertIn("page=2", res_q.content.decode("utf-8"))
         self.assertIn("q=", res_q.content.decode("utf-8"))
 
+
+class ImageUploadPathTest(TestCase):
+    def test_build_image_upload_path_format(self):
+        from datetime import datetime
+        from django.utils import timezone
+        from main.upload_paths import build_image_upload_path
+
+        dt = timezone.make_aware(datetime(2026, 11, 27, 10, 30, 0))
+        path = build_image_upload_path("products", "My Photo.PNG", now=dt)
+        self.assertEqual(path, "products/2026/11/27/sibsir-ru_products_2026-11-27.png")
+
+    def test_model_image_uploads_use_category_date_structure(self):
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+        from django.utils import timezone
+
+        now = timezone.localtime(timezone.now())
+        y, m, d = now.strftime("%Y"), now.strftime("%m"), now.strftime("%d")
+        date_str = now.strftime("%Y-%m-%d")
+
+        tiny_gif = (
+            b"GIF89a\x01\x00\x01\x00\x00\xff\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_media:
+            with override_settings(MEDIA_ROOT=tmp_media):
+                cat = Category.objects.create(name="Сыры", slug="cheeses-upload-test")
+                prod = Product.objects.create(
+                    category=cat,
+                    title="Тестовый сыр",
+                    slug="test-cheese-upload",
+                    price_display="500 ₽",
+                    price_numeric=500,
+                    image=SimpleUploadedFile("cheese.gif", tiny_gif, content_type="image/gif"),
+                )
+                expected_prefix = f"products/{y}/{m}/{d}/sibsir-ru_products_{date_str}"
+                self.assertTrue(prod.image.name.startswith(expected_prefix), prod.image.name)
+                self.assertTrue(prod.image.name.endswith(".gif"), prod.image.name)
+
+                article = Article.objects.create(
+                    title="Тестовая статья",
+                    slug="test-article-upload",
+                    snippet="Анонс",
+                    content="<p>Текст</p>",
+                    image=SimpleUploadedFile("cover.gif", tiny_gif, content_type="image/gif"),
+                )
+                expected_art_prefix = f"articles/{y}/{m}/{d}/sibsir-ru_articles_{date_str}"
+                self.assertTrue(article.image.name.startswith(expected_art_prefix), article.image.name)
+
+    def test_tinymce_image_upload_format_and_collision_handling(self):
+        import json
+        import tempfile
+        from django.contrib.auth import get_user_model
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+        from django.utils import timezone
+
+        now = timezone.localtime(timezone.now())
+        y, m, d = now.strftime("%Y"), now.strftime("%m"), now.strftime("%d")
+        date_str = now.strftime("%Y-%m-%d")
+
+        User = get_user_model()
+        staff = User.objects.create_user(username="staff_uploader", password="pw", is_staff=True)
+        self.client.force_login(staff)
+
+        tiny_gif = (
+            b"GIF89a\x01\x00\x01\x00\x00\xff\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_media:
+            with override_settings(MEDIA_ROOT=tmp_media):
+                res1 = self.client.post(
+                    reverse("tinymce_image_upload"),
+                    {"file": SimpleUploadedFile("first.gif", tiny_gif, content_type="image/gif")},
+                    HTTP_HOST="127.0.0.1",
+                )
+                self.assertEqual(res1.status_code, 200)
+                loc1 = json.loads(res1.content)["location"]
+                self.assertIn(f"/media/editor_uploads/{y}/{m}/{d}/sibsir-ru_editor_uploads_{date_str}.gif", loc1)
+
+                res2 = self.client.post(
+                    reverse("tinymce_image_upload"),
+                    {"file": SimpleUploadedFile("second.gif", tiny_gif, content_type="image/gif")},
+                    HTTP_HOST="127.0.0.1",
+                )
+                self.assertEqual(res2.status_code, 200)
+                loc2 = json.loads(res2.content)["location"]
+                self.assertNotEqual(loc1, loc2)
+                self.assertIn(f"/media/editor_uploads/{y}/{m}/{d}/sibsir-ru_editor_uploads_{date_str}_", loc2)
+                self.assertTrue(loc2.endswith(".gif"))
+

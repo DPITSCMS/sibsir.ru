@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.templatetags.static import static
 from django.utils.text import slugify
 from tinymce.models import HTMLField
+from main.upload_paths import CategoryDateUploadTo
 
 RUSSIAN_MONTHS_GENITIVE = [
     "",
@@ -64,7 +65,7 @@ class News(models.Model):
     slug = models.SlugField(max_length=255, unique=True, verbose_name="Слаг (URL)")
     snippet = models.TextField(verbose_name="Краткий анонс")
     content = HTMLField(verbose_name="Полный текст новости")
-    image = models.ImageField(upload_to="news/", blank=True, null=True, verbose_name="Изображение / баннер")
+    image = models.ImageField(upload_to=CategoryDateUploadTo("news"), blank=True, null=True, verbose_name="Изображение / баннер")
     published_at = models.DateTimeField(
         default=timezone.now, 
         verbose_name="Дата и время публикации", 

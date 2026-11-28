@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from django.templatetags.static import static
+from main.upload_paths import CategoryDateUploadTo
 
 
 class Category(models.Model):
@@ -9,7 +10,7 @@ class Category(models.Model):
     slug = models.SlugField(max_length=150, unique=True, verbose_name="Слаг (URL-идентификатор)")
     description = models.TextField(blank=True, verbose_name="Описание категории")
     image = models.ImageField(
-        upload_to="categories/", 
+        upload_to=CategoryDateUploadTo("categories"), 
         blank=True, 
         null=True, 
         verbose_name="Изображение / баннер категории"
@@ -293,7 +294,7 @@ class Product(models.Model):
     )
 
     image = models.ImageField(
-        upload_to="products/", 
+        upload_to=CategoryDateUploadTo("products"), 
         blank=True, 
         null=True, 
         verbose_name="Загруженное фото"
@@ -825,7 +826,7 @@ class Promotion(models.Model):
     start_date = models.DateTimeField(null=True, blank=True, verbose_name="Дата и время начала")
     end_date = models.DateTimeField(null=True, blank=True, verbose_name="Дата и время окончания")
     banner_image = models.ImageField(
-        upload_to="promotions/", 
+        upload_to=CategoryDateUploadTo("promotions"), 
         blank=True, 
         null=True, 
         verbose_name="Баннер акции"

@@ -1219,13 +1219,12 @@ def tinymce_image_upload(request):
         return JsonResponse({"error": "Файл изображения не найден в запросе."}, status=400)
 
     import os
-    import uuid
-    from django.conf import settings
-    from django.utils.text import slugify
+    from django.core.files.storage import default_storage
+    from .upload_paths import build_image_upload_path
 
     # Проверка допустимых расширений
     allowed_exts = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg"}
-    name, ext = os.path.splitext(uploaded_file.name)
+    _, ext = os.path.splitext(uploaded_file.name)
     ext = ext.lower()
     if ext not in allowed_exts:
         return JsonResponse({
@@ -1236,23 +1235,13 @@ def tinymce_image_upload(request):
     if uploaded_file.size > 10 * 1024 * 1024:
         return JsonResponse({"error": "Размер файла превышает 10 МБ."}, status=400)
 
-    # Генерация безопасного уникального имени файла
-    safe_name = slugify(name)[:40] or "image"
-    unique_filename = f"{safe_name}_{uuid.uuid4().hex[:8]}{ext}"
-
-    upload_dir = os.path.join(settings.MEDIA_ROOT, "editor_uploads")
-    os.makedirs(upload_dir, exist_ok=True)
-
-    dest_path = os.path.join(upload_dir, unique_filename)
+    rel_path = build_image_upload_path("editor_uploads", uploaded_file.name)
     try:
-        with open(dest_path, "wb+") as destination:
-            for chunk in uploaded_file.chunks():
-                destination.write(chunk)
+        saved_path = default_storage.save(rel_path, uploaded_file)
     except Exception as exc:
         return JsonResponse({"error": f"Ошибка сохранения файла: {str(exc)}"}, status=500)
 
-    media_url = settings.MEDIA_URL.rstrip("/")
-    file_url = f"{media_url}/editor_uploads/{unique_filename}"
+    file_url = default_storage.url(saved_path)
     return JsonResponse({"location": file_url})
 
 

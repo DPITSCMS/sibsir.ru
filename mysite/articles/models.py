@@ -1,6 +1,7 @@
 from django.db import models
 from django.templatetags.static import static
 from tinymce.models import HTMLField
+from main.upload_paths import CategoryDateUploadTo
 
 
 class Article(models.Model):
@@ -9,7 +10,7 @@ class Article(models.Model):
     date_str = models.CharField(max_length=50, default="24.07.2025", verbose_name="Отображаемая дата")
     snippet = models.TextField(verbose_name="Краткий анонс статьи")
     content = HTMLField(verbose_name="Полный текст (HTML / абзацы)")
-    image = models.ImageField(upload_to="articles/", blank=True, null=True, verbose_name="Изображение статьи")
+    image = models.ImageField(upload_to=CategoryDateUploadTo("articles"), blank=True, null=True, verbose_name="Изображение статьи")
     views_count = models.PositiveIntegerField(default=120, verbose_name="Просмотры")
     is_published = models.BooleanField(default=True, verbose_name="Опубликовано")
     order = models.PositiveIntegerField(default=0, verbose_name="Порядок сортировки")

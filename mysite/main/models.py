@@ -4,6 +4,7 @@ from django.db import models
 from django.conf import settings
 from django.templatetags.static import static
 from django.utils import timezone
+from .upload_paths import CategoryDateUploadTo
 
 
 def extract_yandex_map_url(value: str) -> str:
@@ -61,14 +62,14 @@ class SiteSettings(models.Model):
         verbose_name="Краткое название бренда"
     )
     logo = models.FileField(
-        upload_to="branding/",
+        upload_to=CategoryDateUploadTo("branding"),
         blank=True,
         null=True,
         verbose_name="Логотип сайта (PNG, SVG, JPG, WebP)",
         help_text="Отображается в шапке сайта, подвале и печатных документах. Рекомендуется прозрачный фон."
     )
     favicon = models.FileField(
-        upload_to="branding/",
+        upload_to=CategoryDateUploadTo("branding"),
         blank=True,
         null=True,
         verbose_name="Фавикон сайта (ICO, PNG, SVG)",
@@ -89,7 +90,7 @@ class SiteSettings(models.Model):
         verbose_name="Текст бейджа на главном баннере"
     )
     hero_image = models.ImageField(
-        upload_to="hero/", 
+        upload_to=CategoryDateUploadTo("hero"), 
         blank=True, 
         null=True, 
         verbose_name="Главное фото (Hero)"
@@ -199,7 +200,7 @@ class SiteSettings(models.Model):
         verbose_name="Текст о компании"
     )
     about_image = models.ImageField(
-        upload_to="about/",
+        upload_to=CategoryDateUploadTo("about"),
         blank=True,
         null=True,
         verbose_name="Фото раздела «О компании» (производство/сыроварня)"
@@ -260,7 +261,7 @@ class SiteSettings(models.Model):
         verbose_name="Текст блока холодовой цепи"
     )
     delivery_cold_chain_image = models.ImageField(
-        upload_to="delivery/",
+        upload_to=CategoryDateUploadTo("delivery"),
         blank=True,
         null=True,
         verbose_name="Иллюстрация / фото доставки"
@@ -373,7 +374,7 @@ class SiteSettings(models.Model):
         verbose_name="Плейсхолдер поиска в каталоге"
     )
     catalog_banner_image = models.ImageField(
-        upload_to="catalog/",
+        upload_to=CategoryDateUploadTo("catalog"),
         blank=True,
         null=True,
         verbose_name="Фоновый баннер каталога"
@@ -458,7 +459,7 @@ class SiteSettings(models.Model):
         help_text="Например: https://sibsir.ru (без завершающего слэша)"
     )
     seo_og_image = models.ImageField(
-        upload_to="seo/",
+        upload_to=CategoryDateUploadTo("seo"),
         blank=True,
         null=True,
         verbose_name="Изображение для соцсетей по умолчанию (OpenGraph)",
@@ -924,7 +925,7 @@ class ProductionFeature(models.Model):
         help_text="Например: bi-award, bi-droplet-half, bi-shield-check, bi-clock-history, bi-truck, bi-gear, bi-shop"
     )
     image = models.ImageField(
-        upload_to="features/", 
+        upload_to=CategoryDateUploadTo("features"), 
         blank=True, 
         null=True, 
         verbose_name="Изображение / Иллюстрация (опционально)"
@@ -1054,7 +1055,7 @@ class PaymentMethod(models.Model):
         help_text="Выберите платежную систему для автоматического отображения фирменного логотипа (если баннер-файл не загружен)."
     )
     image = models.ImageField(
-        upload_to="payment_methods/",
+        upload_to=CategoryDateUploadTo("payment_methods"),
         blank=True,
         null=True,
         verbose_name="Баннер / Логотип (файл)",
@@ -1301,7 +1302,7 @@ class SocialLink(models.Model):
         help_text="Полная ссылка, включая https://, например: https://vk.com/sibsir"
     )
     icon = models.ImageField(
-        upload_to="social_icons/",
+        upload_to=CategoryDateUploadTo("social_icons"),
         blank=True,
         null=True,
         verbose_name="Иконка (файл изображения)",
@@ -1473,7 +1474,7 @@ class Page(models.Model):
         help_text="Визуальный редактор TinyMCE: заголовки, таблицы, форматирование, иллюстрации, ссылки."
     )
     featured_image = models.ImageField(
-        upload_to="pages/", 
+        upload_to=CategoryDateUploadTo("pages"), 
         blank=True, 
         null=True, 
         verbose_name="Главное фото / Обложка баннера",
@@ -1569,7 +1570,7 @@ class Page(models.Model):
         help_text="Краткое описание для карточек в соцсетях. Если пусто, берется Meta Description."
     )
     og_image = models.ImageField(
-        upload_to="pages/og/", 
+        upload_to=CategoryDateUploadTo("pages_og"), 
         blank=True, 
         null=True, 
         verbose_name="Изображение для соцсетей (OG Image)",
@@ -1899,7 +1900,7 @@ class FooterStatBanner(models.Model):
     )
     # Поля для графического баннера
     image = models.ImageField(
-        upload_to="stat_banners/",
+        upload_to=CategoryDateUploadTo("stat_banners"),
         blank=True,
         null=True,
         verbose_name="Изображение баннера",
